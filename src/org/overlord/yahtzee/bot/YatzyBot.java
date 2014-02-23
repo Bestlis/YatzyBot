@@ -365,7 +365,8 @@ public class YatzyBot {
 			bot.joinChannel(channel);
 			bot.sendMessage(channel, "Hello, I am YatzyBot :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason)");
 			bot.sendMessage(channel, "Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)");
-
+			bot.sendMessage(channel, "Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!");
+			
 			y.addListener(new YatzyListener() {
 				@Override
 				public void onTurn(Turn t) {
