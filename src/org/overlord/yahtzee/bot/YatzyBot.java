@@ -29,6 +29,7 @@ import org.pircbotx.hooks.events.MessageEvent;
 public class YatzyBot {
 	protected final String server;
 	protected final String channel;
+	protected static final String VERSION = "0.8";
 
 	final Yahtzee y = new Yahtzee();
 
@@ -51,7 +52,9 @@ public class YatzyBot {
 			bot.getListenerManager().addListener(new ListenerAdapter<PircBotX>() {
 				@Override
 				public void onMessage(MessageEvent<PircBotX> event) {
-					if (event.getMessage().startsWith(".roll")) {
+					if (event.getMessage().startsWith(".credits")) {
+						bot.sendMessage(channel, "YatzyBot " + VERSION + " by Overlord Industries (Chris Dennett / dessimat0r@gmail.com) and other contributors (none yet, add your name and e-mail here if you contribute).");
+					} else if (event.getMessage().startsWith(".roll")) {
 						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 							String[] tokens = event.getMessage().split(" ");
 							if (tokens[0].equals(".roll")) {
@@ -363,7 +366,7 @@ public class YatzyBot {
 			bot.setName("YatzyBot");
 			bot.connect(server);
 			bot.joinChannel(channel);
-			bot.sendMessage(channel, "Hello, I am YatzyBot :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason)");
+			bot.sendMessage(channel, "Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason)");
 			bot.sendMessage(channel, "Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)");
 			bot.sendMessage(channel, "Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!");
 			
