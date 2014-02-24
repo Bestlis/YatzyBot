@@ -1,8 +1,12 @@
+// YatzyBot, licensed using GPLv3.
+// =================================================
+// Contributions to this file from:
+// * Chris Dennett (dessimat0r@gmail.com)
+
 package org.overlord.yahtzee;
 
 public class TurnException extends YahtzyException {
 	public TurnException() {
-		// TODO Auto-generated constructor stub
 	}
 
 	public TurnException(String arg0) {
