@@ -34,7 +34,7 @@ import org.pircbotx.hooks.events.MessageEvent;
 public class YatzyBot {
 	protected final String server;
 	protected final String channel;
-	protected static final String VERSION = "0.81";
+	protected static final String VERSION = "0.811";
 
 	final Yahtzee y = new Yahtzee();
 
@@ -60,7 +60,7 @@ public class YatzyBot {
 					String[] tokens = event.getMessage().split(" ");
 					if (tokens[0].equals(".credits")) {
 						bot.sendMessage(channel, "YatzyBot " + VERSION + " by Overlord Industries (Chris Dennett / dessimat0r@gmail.com) and other contributors (none yet, add your name and e-mail here if you contribute).");
-					} else if (tokens[0].equals(".roll")) {
+					} else if (tokens[0].equals(".roll") || tokens[0].equals(".r")) {
 						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 							if (tokens[0].equals(".roll")) {
 								final boolean[] rolled;
