@@ -1,5 +1,5 @@
-YatzyBot 0.812
-==============
+YatzyBot 0.812 (25-02-2014)
+===========================
 
 A bot for playing the popular European Yatzy dice game in IRC (uses Java, PircBotX) with one or more players. Supports the following:
 
