@@ -16,7 +16,7 @@ Limitations at the moment include:
 
 * Can only join one IRC server and channel, use multiple instances of the bot to join more.
 * If everyone in a game quits, the bot does not realise yet and terminate the game - better to wait some minutes just to make sure they are really gone!
-* Can't specify particular scorings with 'hardcoded dice' to hold, such as Small Straight or Large Straight (this would look like `.hold LS` to hold precisely the dice numbered 1, 2, 3, 4 and 5, ignoring the rest). A nice shortcut. This feature will almost certainly arrive in future versions.
+* Can't specify particular scorings with 'hardcoded dice' to hold, such as Small Straight or Large Straight (this would look like `.hold SS` to hold precisely the dice numbered 1, 2, 3, 4 and 5, ignoring the rest). A nice shortcut. This feature will almost certainly arrive in future versions.
 
 Usage:
 
