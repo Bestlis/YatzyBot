@@ -34,7 +34,7 @@ import org.pircbotx.hooks.events.MessageEvent;
 public class YatzyBot {
 	protected final String server;
 	protected final String channel;
-	protected static final String VERSION = "0.811";
+	protected static final String VERSION = "0.812";
 
 	final Yahtzee y = new Yahtzee();
 
@@ -62,41 +62,39 @@ public class YatzyBot {
 						bot.sendMessage(channel, "YatzyBot " + VERSION + " by Overlord Industries (Chris Dennett / dessimat0r@gmail.com) and other contributors (none yet, add your name and e-mail here if you contribute).");
 					} else if (tokens[0].equals(".roll") || tokens[0].equals(".r")) {
 						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-							if (tokens[0].equals(".roll")) {
-								final boolean[] rolled;
-								try {
-									if (tokens.length == 1) {
-										rolled = y.getTurn().roll();
-									} else {
-										int[] nums = new int[tokens.length - 1];
-										// parse other numbers
-										for (int i = 1; i < tokens.length; i++) {
-											int num = Integer.parseInt(tokens[i]);
-											nums[i - 1] = num;
-										}
-										rolled = y.getTurn().rollNumbers(nums);
+							final boolean[] rolled;
+							try {
+								if (tokens.length == 1) {
+									rolled = y.getTurn().roll();
+								} else {
+									int[] nums = new int[tokens.length - 1];
+									// parse other numbers
+									for (int i = 1; i < tokens.length; i++) {
+										int num = Integer.parseInt(tokens[i]);
+										nums[i - 1] = num;
 									}
-									Map<Scoring, Integer> scores = y.getRollScores();
-
-									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
-									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-
-									for (Entry<Scoring, Integer> entry : scores.entrySet()) {
-										if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
-											unchosen.put(entry.getKey(), entry.getValue());
-										} else {
-											chosen.put(entry.getKey(), entry.getValue());
-										}
-									}
-
-									bot.sendMessage(channel, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
-								} catch (TurnException e1) {
-									bot.sendMessage(channel, e1.getMessage());
-								} catch (RollException e2) {
-									bot.sendMessage(channel, e2.getMessage());
-								} catch (YahtzyException e3) {
-									bot.sendMessage(channel, e3.getMessage());
+									rolled = y.getTurn().rollNumbers(nums);
 								}
+								Map<Scoring, Integer> scores = y.getRollScores();
+
+								Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+								Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+
+								for (Entry<Scoring, Integer> entry : scores.entrySet()) {
+									if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
+										unchosen.put(entry.getKey(), entry.getValue());
+									} else {
+										chosen.put(entry.getKey(), entry.getValue());
+									}
+								}
+
+								bot.sendMessage(channel, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+							} catch (TurnException e1) {
+								bot.sendMessage(channel, e1.getMessage());
+							} catch (RollException e2) {
+								bot.sendMessage(channel, e2.getMessage());
+							} catch (YahtzyException e3) {
+								bot.sendMessage(channel, e3.getMessage());
 							}
 						}
 					} else if (tokens[0].equals(".hold") || tokens[0].equals(".h")) {
