@@ -19,7 +19,7 @@ Limitations at the moment include:
 
 Usage:
 
-`java -jar yatzybot.jar`. If running on a shell via SSH, it is recommended you use `nohup` to prevent SSH hangup from terminating the bot.
+`java -jar yatzybot.jar [server] [channel]`. If running on a shell via SSH, it is recommended you use `nohup` to prevent SSH hangup from terminating the bot.
 
 License:
 
