@@ -32,9 +32,10 @@ import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 
 public class YatzyBot {
+	protected static final String VERSION = "0.812";
+	
 	protected final String server;
 	protected final String channel;
-	protected static final String VERSION = "0.812";
 
 	final Yahtzee y = new Yahtzee();
 
