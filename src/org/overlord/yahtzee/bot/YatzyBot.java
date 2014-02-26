@@ -32,7 +32,7 @@ import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 
 public class YatzyBot {
-	protected static final String VERSION = "0.812";
+	protected static final String VERSION = "0.82";
 	
 	protected final String server;
 	protected final String channel;
@@ -43,23 +43,26 @@ public class YatzyBot {
 	{
 		int[] ret = new int[integers.size()];
 		Iterator<Integer> iterator = integers.iterator();
-		for (int i = 0; i < ret.length; i++)
-		{
-			ret[i] = iterator.next().intValue();
+		for (int i = 0; i < ret.length; i++) {
+			ret[i] = iterator.next();
 		}
 		return ret;
 	}
+	
+	protected final PircBotX bot;
 
 	public YatzyBot(final String server, final String channel) {
 		this.server  = server;
 		this.channel = channel;
 		try {
-			final PircBotX bot = new PircBotX();
+			bot = new PircBotX();
 			bot.getListenerManager().addListener(new ListenerAdapter<PircBotX>() {
 				@Override
 				public void onMessage(MessageEvent<PircBotX> event) {
 					String[] tokens = event.getMessage().split(" ");
-					if (tokens[0].equals(".credits")) {
+					if (tokens[0].equals(".help")) {
+						showHelpMsg();
+					} else if (tokens[0].equals(".credits")) {
 						bot.sendMessage(channel, "YatzyBot " + VERSION + " by Overlord Industries (Chris Dennett / dessimat0r@gmail.com) and other contributors (none yet, add your name and e-mail here if you contribute).");
 					} else if (tokens[0].equals(".roll") || tokens[0].equals(".r")) {
 						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
@@ -359,9 +362,7 @@ public class YatzyBot {
 			bot.setName("YatzyBot");
 			bot.connect(server);
 			bot.joinChannel(channel);
-			bot.sendMessage(channel, "Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason)");
-			bot.sendMessage(channel, "Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)");
-			bot.sendMessage(channel, "Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!");
+			showHelpMsg();
 			
 			y.addListener(new YatzyListener() {
 				@Override
@@ -435,10 +436,16 @@ public class YatzyBot {
 				}
 			});
 		} catch (IrcException e) {
-
+			throw new IllegalStateException(e);
 		} catch (IOException e) {
-
+			throw new IllegalStateException(e);
 		}
+	}
+	
+	public void showHelpMsg() {
+		bot.sendMessage(channel, "Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)");
+		bot.sendMessage(channel, "Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)");
+		bot.sendMessage(channel, "Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!");
 	}
 
 	public static final Comparator<Entry<Scoring, Integer>> dicevalcomp = new Comparator<Map.Entry<Scoring,Integer>>() {
