@@ -61,7 +61,7 @@ public class YatzyBot {
 
 	public void start() {
 		bot.joinChannel(channel);
-		showHelpMsg();
+		showInitialHelpMsg();
 		
 		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
@@ -72,9 +72,15 @@ public class YatzyBot {
 				
 				String[] tokens = event.getMessage().split(" ");
 				if (tokens[0].equals(".help")) {
-					showHelpMsg();
+					showHelpMsg(event.getUser().getNick());
 				} else if (tokens[0].equals(".credits")) {
-					bot.sendMessage(channel, "YatzyBot " + VERSION + " by Overlord Industries (Chris Dennett / dessimat0r@gmail.com) and other contributors (none yet, add your name and e-mail here if you contribute).");
+					bot.sendNotice(
+						event.getUser(),
+						"YatzyBot " + VERSION + " by Overlord Industries " +
+						"(Chris Dennett / Dessimat0r / dessimat0r@gmail.com) " +
+						"and other contributors (none yet, add your name and " +
+						"e-mail here if you contribute)."
+					);
 				} else if (tokens[0].equals(".roll") || tokens[0].equals(".r")) {
 					if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 						final boolean[] rolled;
@@ -384,10 +390,29 @@ public class YatzyBot {
 		return server;
 	}
 	
-	public void showHelpMsg() {
-		bot.sendMessage(channel, "Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)");
-		bot.sendMessage(channel, "Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)");
-		bot.sendMessage(channel, "Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!");
+	public static final String INITIAL_HELP_TEXT =
+		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for further contributions (http://github.com/Dessimat0r/YatzyBot). Have fun! :)";
+	;
+	
+	public static final String HELP_TEXT =
+		"Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)\n" +
+		"Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)\n" +
+		"Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!"
+	;
+	
+	public void showInitialHelpMsg() {
+		bot.sendMessage(channel, INITIAL_HELP_TEXT);
+	}
+	
+	public void showHelpMsg(String user) {
+		if (user == null) {
+			bot.sendMessage(channel, HELP_TEXT);
+			return;
+		}
+		if (user.startsWith("#")) {
+			throw new IllegalArgumentException("User nick cannot start with # char!");
+		}
+		bot.sendNotice(user, HELP_TEXT);
 	}
 	
 	public void showLeaveMsg(String message) {

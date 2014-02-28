@@ -1,8 +1,6 @@
 package org.overlord.yahtzee.bot;
 
 import java.util.ArrayList;
-import java.util.Arrays;
-
 import org.pircbotx.PircBotX;
 
 public class YatzyUser {
@@ -125,7 +123,7 @@ public class YatzyUser {
 			"<channels (comma delimitered list, 'none' for no channels)>}. " +
 			"For example: 'irc.yourserver.net #yatzy,#chatland pimppi@irc.myserver.fi " +
 			"#hissi,#kissa'. If unspecified, nick will be 'YatzyBot' by default. There " +
-			"must be no spaces between channel names and comma seperators."
+			"must be no spaces between channels and comma delimiters."
 		);
 	}
 }
