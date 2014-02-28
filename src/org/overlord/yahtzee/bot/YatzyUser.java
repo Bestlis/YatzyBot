@@ -1,6 +1,7 @@
 package org.overlord.yahtzee.bot;
 
 import java.util.ArrayList;
+
 import org.pircbotx.PircBotX;
 
 public class YatzyUser {

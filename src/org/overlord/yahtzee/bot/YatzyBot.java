@@ -5,9 +5,7 @@
 
 package org.overlord.yahtzee.bot;
 
-import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -20,14 +18,11 @@ import org.overlord.yahtzee.Player;
 import org.overlord.yahtzee.RollException;
 import org.overlord.yahtzee.ScoreException;
 import org.overlord.yahtzee.Scoring;
-import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.TurnException;
 import org.overlord.yahtzee.Yahtzee;
 import org.overlord.yahtzee.YahtzyException;
-import org.overlord.yahtzee.YatzyListener;
 import org.pircbotx.Colors;
 import org.pircbotx.PircBotX;
-import org.pircbotx.exception.IrcException;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 
