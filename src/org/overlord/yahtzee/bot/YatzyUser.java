@@ -82,7 +82,7 @@ public class YatzyUser {
 		ArrayList<ServerDef> defs = new ArrayList<ServerDef>();
 		for (int i = 0; i < (args.length / 2); i++) {
 			String   serverT  = args[i * 2];
-			String   chans    = args[i * 2] + 1;
+			String   chans    = args[(i * 2) + 1];
 			String[] chansArr = null;
 			
 			String username = "YatzyBot";

@@ -16,14 +16,12 @@ import java.util.concurrent.CopyOnWriteArrayList;
 public class Yahtzee {
 	public static Map<String, Scoring> SCORING_MAP = new HashMap<String, Scoring>();
 	public static Map<String, Scoring> SCORING_ABBRV_MAP = new HashMap<String, Scoring>();
-	
 	{
 		for (Scoring s : Scoring.values()) {
 			SCORING_MAP.put(s.name(), s);
 			SCORING_ABBRV_MAP.put(s.getAbrv().toLowerCase(), s);
 		}
 	}
-	
 	protected final List<YatzyListener> listeners = new CopyOnWriteArrayList<YatzyListener>();
 	
 	protected final Map<String, Player> playerMap = new HashMap<String, Player>();
