@@ -74,6 +74,8 @@ public class YatzyUser {
 		return users;
 	}
 	
+	protected static volatile boolean running = true;
+	
 	public static void main(String[] args) {
 		if (args.length < 2 || args.length % 2 != 0) {
 			showArgText();
@@ -116,6 +118,38 @@ public class YatzyUser {
 		for (YatzyUser yu : users) {
 			yu.start();
 		}
+		
+		// need to join to the individual threads here, until they complete.
+		synchronized (YatzyUser.class) {
+			try {
+				while (running) {
+					YatzyUser.class.wait();
+				}
+			} catch (InterruptedException e) {
+				running = false;
+				Thread.currentThread().interrupt();
+			}
+		}
+		
+		// dispose all apps
+		for (YatzyUser yu : users) {
+			yu.finish(reason);
+		}
+	}
+	
+	public void dispose(String reason) {
+		for (YatzyBot yb : bots) {
+			yb.dispose(reason, false);
+		}
+		bot.disconnect();
+	}
+	
+	public static void disposeAll(String reason) {
+		// dispose all apps
+		for (YatzyUser yu : users) {
+			yu.dispose(reason);
+		}
+		running = false;
 	}
 	
 	public static void showArgText() {

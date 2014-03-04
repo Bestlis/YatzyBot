@@ -372,11 +372,11 @@ public class YatzyBot {
 		});
 	}
 	
-	public void dispose() {
-		dispose("None");
+	public void dispose(boolean leave) {
+		dispose("None", leave);
 	}
 	
-	public void dispose(String message) {
+	public void dispose(String message, boolean leave) {
 		bot.getListenerManager().removeListener(listener);
 		showLeaveMsg(message);
 	}
