@@ -142,15 +142,41 @@ public class YatzyUser {
 		}
 		for (YatzyUser yu : users) {
 			int tries = 0;
-			try {
-				tries++;
-				yu.connect();
-			} catch (NickAlreadyInUseException e) {
-				yu.getBot().setName(yu.getBot().getName() + "1");
-			} catch (IOException e) {
-				System.err.println(e.toString());
-			} catch (IrcException e) {
-				System.err.println(e.toString());
+			while (tries < 3) {
+				String initialNick = yu.getBot().getName();
+				try {
+					System.out.println(
+						yu + ": attempting connection to " + yu.getServerDef().getServer() +
+						": attempt #" + ++tries
+					);
+					yu.connect();
+				} catch (NickAlreadyInUseException e) {
+					String newnick = initialNick + tries;
+					System.err.println(
+						"Couldn't connect to server: " +
+						yu.getServerDef().getServer() +
+						": nickname in use: " + yu.getBot().getName() +
+						" - changing nick to: " + newnick  + " ~ " +
+						e.getMessage()
+					);
+					yu.getBot().setName(newnick);
+				} catch (IOException e) {
+					System.err.println(
+						"Couldn't connect to server: " +
+						yu.getServerDef().getServer() + " ~ " +
+						e.getMessage()
+					);
+					System.err.println(e.toString());
+					continue;
+				} catch (IrcException e) {
+					System.err.println(
+						"Couldn't connect to server: " +
+						yu.getServerDef().getServer() + " ~ " +
+						e.getMessage()
+					);
+					System.err.println(e.toString());
+					continue;
+				}
 			}
 		}
 		
