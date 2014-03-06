@@ -142,7 +142,7 @@ public class YatzyUser {
 		}
 		for (YatzyUser yu : users) {
 			int tries = 0;
-			while (tries < 3) {
+			while (tries < 3 && !yu.getBot().isConnected()) {
 				String initialNick = yu.getBot().getName();
 				try {
 					System.out.println(
@@ -160,6 +160,7 @@ public class YatzyUser {
 						e.getMessage()
 					);
 					yu.getBot().setName(newnick);
+					continue;
 				} catch (IOException e) {
 					System.err.println(
 						"Couldn't connect to server: " +
@@ -167,7 +168,7 @@ public class YatzyUser {
 						e.getMessage()
 					);
 					System.err.println(e.toString());
-					continue;
+					return;
 				} catch (IrcException e) {
 					System.err.println(
 						"Couldn't connect to server: " +
@@ -175,7 +176,7 @@ public class YatzyUser {
 						e.getMessage()
 					);
 					System.err.println(e.toString());
-					continue;
+					return;
 				}
 			}
 		}
