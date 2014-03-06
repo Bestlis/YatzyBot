@@ -403,20 +403,26 @@ public class YatzyBot {
 	public static final String INITIAL_HELP_TEXT =
 		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for further contributions (http://github.com/Dessimat0r/YatzyBot). Have fun! :)";
 	;
+	public static final String[] INITIAL_HELP_TEXT_ARR = INITIAL_HELP_TEXT.split("\\r?\\n");
 	
 	public static final String HELP_TEXT =
 		"Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)\n" +
 		"Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)\n" +
 		"Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!"
 	;
+	public static final String[] HELP_TEXT_ARR = HELP_TEXT.split("\\r?\\n");
 	
 	public void showInitialHelpMsg() {
-		bot.sendMessage(channel, INITIAL_HELP_TEXT);
+		for (String line : INITIAL_HELP_TEXT_ARR) {
+			bot.sendMessage(channel, line);
+		}
 	}
 	
 	public void showHelpMsg(User user) {
 		if (user == null) {
-			bot.sendMessage(channel, HELP_TEXT);
+			for (String line : HELP_TEXT_ARR) {
+				bot.sendMessage(channel, line);
+			}
 			return;
 		}
 		bot.sendNotice(user, HELP_TEXT);
