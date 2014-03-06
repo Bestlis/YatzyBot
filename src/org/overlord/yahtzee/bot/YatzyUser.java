@@ -1,8 +1,12 @@
 package org.overlord.yahtzee.bot;
 
+import java.io.IOException;
 import java.util.ArrayList;
 
+import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
+import org.pircbotx.exception.IrcException;
+import org.pircbotx.exception.NickAlreadyInUseException;
 
 public class YatzyUser {
 	public static class ServerDef {
@@ -34,6 +38,7 @@ public class YatzyUser {
 	
 	protected final ServerDef serverDef;
 	protected final PircBotX  bot;
+	protected volatile static String quitReason = null;
 	
 	public YatzyUser(String username, String server, String channels[]) {
 		this(new ServerDef(username, server, channels));
@@ -44,7 +49,8 @@ public class YatzyUser {
 		this.bot = new PircBotX();
 		bot.setName(def.getUsername());
 		for (String channel : def.getChannels()) {
-			bots.add(new YatzyBot(this, channel));
+			Channel chanobj = bot.getChannel(channel);
+			bots.add(new YatzyBot(this, chanobj));
 		}
 	}
 	
@@ -56,7 +62,9 @@ public class YatzyUser {
 		return serverDef;
 	}
 	
-	public void start() {
+	public synchronized void connect() throws NickAlreadyInUseException, IrcException, IOException {
+		System.out.println(this + ": start");
+		bot.connect(serverDef.getServer());
 		for (YatzyBot yb : bots) {
 			yb.start();
 		}
@@ -116,7 +124,17 @@ public class YatzyUser {
 			users.add(yu);
 		}
 		for (YatzyUser yu : users) {
-			yu.start();
+			int tries = 0;
+			try {
+				tries++;
+				yu.connect();
+			} catch (NickAlreadyInUseException e) {
+				yu.getBot().setName(yu.getBot().getName() + "1");
+			} catch (IOException e) {
+				System.err.println(e.toString());
+			} catch (IrcException e) {
+				System.err.println(e.toString());
+			}
 		}
 		
 		// need to join to the individual threads here, until they complete.
@@ -124,31 +142,43 @@ public class YatzyUser {
 			try {
 				while (running) {
 					YatzyUser.class.wait();
+					if (users.isEmpty()) {
+						// no way to get new input
+						quit("Not connected to any servers, no mechanism for bot to get input.");
+					}
 				}
 			} catch (InterruptedException e) {
-				running = false;
-				Thread.currentThread().interrupt();
+				quit("Interrupted in main loop.");
 			}
 		}
 		
 		// dispose all apps
+		// this might cause problems because of thread-safety, probably not.
 		for (YatzyUser yu : users) {
-			yu.finish(reason);
+			yu.dispose(quitReason != null ? quitReason : "Execution ended normally - no reason.");
 		}
 	}
 	
-	public void dispose(String reason) {
+	public synchronized void dispose(String reason) {
+		System.out.println(this + ": dispose: "+ reason);
 		for (YatzyBot yb : bots) {
-			yb.dispose(reason, false);
+			yb.dispose();
 		}
-		bot.disconnect();
+		bot.quitServer(reason);
 	}
 	
-	public static void disposeAll(String reason) {
-		// dispose all apps
+	public static void quit(String reason) {
+		if (!running) throw new IllegalStateException("Already quitting!");
+		
+		System.out.println(YatzyUser.class + ": quit");
+		
+		quitReason = reason;
+		
+		// dispose all bots without leaving channels (quit servers with message)
 		for (YatzyUser yu : users) {
 			yu.dispose(reason);
 		}
+		
 		running = false;
 	}
 	
