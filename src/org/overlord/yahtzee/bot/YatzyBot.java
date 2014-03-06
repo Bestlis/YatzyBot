@@ -24,6 +24,7 @@ import org.overlord.yahtzee.YahtzyException;
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
 import org.pircbotx.PircBotX;
+import org.pircbotx.User;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.MessageEvent;
 
@@ -73,13 +74,13 @@ public class YatzyBot {
 			@Override
 			public void onMessage(MessageEvent<PircBotX> event) {
 				synchronized (YatzyBot.this) {
-					if (!event.getChannel().equals(channel)) {
+					if (!event.getChannel().equals(channelObj)) {
 						return; // ignore
 					}
 					
 					String[] tokens = event.getMessage().split(" ");
 					if (tokens[0].equals(".help")) {
-						showHelpMsg(event.getUser().getNick());
+						showHelpMsg(event.getUser());
 					} else if (tokens[0].equals(".credits")) {
 						bot.sendNotice(
 							event.getUser(),
@@ -391,7 +392,7 @@ public class YatzyBot {
 	}
 	
 	// remember to remove from parent user lists
-	public void dispose() {
+	synchronized void dispose() {
 		bot.getListenerManager().removeListener(listener); // remove listener
 	}
 	
@@ -413,13 +414,10 @@ public class YatzyBot {
 		bot.sendMessage(channel, INITIAL_HELP_TEXT);
 	}
 	
-	public void showHelpMsg(String user) {
+	public void showHelpMsg(User user) {
 		if (user == null) {
 			bot.sendMessage(channel, HELP_TEXT);
 			return;
-		}
-		if (user.startsWith("#")) {
-			throw new IllegalArgumentException("User nick cannot start with # char!");
 		}
 		bot.sendNotice(user, HELP_TEXT);
 	}

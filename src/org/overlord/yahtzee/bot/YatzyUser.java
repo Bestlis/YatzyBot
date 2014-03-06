@@ -7,6 +7,10 @@ import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.exception.NickAlreadyInUseException;
+import org.pircbotx.hooks.Event;
+import org.pircbotx.hooks.Listener;
+import org.pircbotx.hooks.ListenerAdapter;
+import org.pircbotx.hooks.events.ConnectEvent;
 
 public class YatzyUser {
 	public static class ServerDef {
@@ -38,6 +42,7 @@ public class YatzyUser {
 	
 	protected final ServerDef serverDef;
 	protected final PircBotX  bot;
+	protected final ListenerAdapter<PircBotX> listener;
 	protected volatile static String quitReason = null;
 	
 	public YatzyUser(String username, String server, String channels[]) {
@@ -48,6 +53,16 @@ public class YatzyUser {
 		this.serverDef = def;
 		this.bot = new PircBotX();
 		bot.setName(def.getUsername());
+		
+		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
+			@Override
+			public void onConnect(ConnectEvent<PircBotX> event) throws Exception {
+				for (YatzyBot yb : bots) {
+					yb.start();
+				}
+			}
+		});		
+		
 		for (String channel : def.getChannels()) {
 			Channel chanobj = bot.getChannel(channel);
 			bots.add(new YatzyBot(this, chanobj));
@@ -62,12 +77,14 @@ public class YatzyUser {
 		return serverDef;
 	}
 	
+	public synchronized void dispose(YatzyBot bot) {
+		bot.dispose();
+		bots.remove(bot);
+	}
+	
 	public synchronized void connect() throws NickAlreadyInUseException, IrcException, IOException {
 		System.out.println(this + ": start");
 		bot.connect(serverDef.getServer());
-		for (YatzyBot yb : bots) {
-			yb.start();
-		}
 	}
 	
 	public PircBotX getBot() {
@@ -161,6 +178,7 @@ public class YatzyUser {
 	
 	public synchronized void dispose(String reason) {
 		System.out.println(this + ": dispose: "+ reason);
+		bot.getListenerManager().removeListener(listener);
 		for (YatzyBot yb : bots) {
 			yb.dispose();
 		}
