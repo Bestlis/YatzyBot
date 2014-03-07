@@ -18,9 +18,11 @@ import org.overlord.yahtzee.Player;
 import org.overlord.yahtzee.RollException;
 import org.overlord.yahtzee.ScoreException;
 import org.overlord.yahtzee.Scoring;
+import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.TurnException;
 import org.overlord.yahtzee.Yahtzee;
 import org.overlord.yahtzee.YahtzyException;
+import org.overlord.yahtzee.YatzyListener;
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
 import org.pircbotx.PircBotX;
@@ -36,7 +38,7 @@ public class YatzyBot {
 	protected final String server;
 	protected final String channel;
 	protected final Channel channelObj;
-	protected ListenerAdapter<PircBotX> listener = null;
+	protected final ListenerAdapter<PircBotX> listener;
 	
 	protected final Yahtzee y = new Yahtzee();
 
@@ -56,19 +58,92 @@ public class YatzyBot {
 		this.server     = user.getServerDef().getServer();
 		this.channelObj = channelObj;
 		this.channel    = channelObj.getName();
-	}
-	
-	public String getChannel() {
-		return channel;
-	}
-	
-	public Channel getChannelObj() {
-		return channelObj;
-	}
+		
+		y.addListener(new YatzyListener() {
+			@Override
+			public void onTurn(Turn t) {
+				Map<Scoring, Integer> unchosen =
+					new EnumMap<Scoring, Integer>(Scoring.class)
+				;
+				Map<Scoring, Integer> chosen =
+					new EnumMap<Scoring, Integer>(Scoring.class)
+				;
 
-	public void start() {
-		bot.joinChannel(channel);
-		showInitialHelpMsg();
+				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+					if (entry.getValue() == -1) {
+						unchosen.put(entry.getKey(), entry.getValue());
+					} else {
+						chosen.put(entry.getKey(), entry.getValue());
+					}
+				}
+				bot.sendMessage(
+					channelObj,
+					t.getPlayer().getName() + ", it is your turn. Totals: " +
+					getTotalsStr(chosen, false, false) + ", Score: " +
+					y.getTurn().getPlayer().getTotalScore() +
+					", Turns remaining after this turn: " +
+					(unchosen.size() - 1)
+				);
+			}
+
+			@Override
+			public void onStart(Yahtzee y) {
+				bot.sendMessage(channelObj, "The game has started!");
+			}
+
+			@Override
+			public void onTurnComplete(Turn t) {
+				Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+				Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+
+				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+					if (entry.getValue() == -1) {
+						unchosen.put(entry.getKey(), entry.getValue());
+					} else {
+						chosen.put(entry.getKey(), entry.getValue());
+					}
+				}
+
+				bot.sendMessage(
+					channelObj,
+					"Turn completed. Totals: " +
+					getTotalsStr(chosen, false, false) +
+					", Score: " + y.getTurn().getPlayer().getTotalScore() +
+					", Turns remaining: " + (unchosen.size() - 1)
+				);
+			}
+
+			@Override
+			public void onAddPlayer(Player p) {
+				bot.sendMessage(channelObj, "Player added: " + p.getName());
+			}
+
+			@Override
+			public void onReset(Yahtzee y) {
+				bot.sendMessage(channelObj, "Game reset! Please add players!");
+			}
+
+			@Override
+			public void onGameComplete(Yahtzee y) {
+				StringBuilder sb = new StringBuilder();
+				boolean first = true;
+				for (Player p : y.getPlayers()) {
+					if (!first) { sb.append(", "); }
+					sb.append(p.getName()).append(": ").append(p.getTotalScore());
+					first = false;
+				}
+				bot.sendMessage(
+					channelObj,
+					"Game complete! Final scores: " + sb.toString() + ". " +
+					"Please use .reset to play again!"
+				);
+			}
+
+			@Override
+			public void onRemovePlayer(Player p) {
+				bot.sendMessage(channelObj, "Player removed: " + p.getName());
+			}
+		});
 		
 		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
@@ -77,7 +152,6 @@ public class YatzyBot {
 					if (!event.getChannel().equals(channelObj)) {
 						return; // ignore
 					}
-					
 					String[] tokens = event.getMessage().split(" ");
 					if (tokens[0].equals(".help")) {
 						showHelpMsg(event.getUser());
@@ -117,13 +191,13 @@ public class YatzyBot {
 									}
 								}
 	
-								bot.sendMessage(channel, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+								bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
 							} catch (TurnException e1) {
-								bot.sendMessage(channel, e1.getMessage());
+								bot.sendMessage(channelObj, e1.getMessage());
 							} catch (RollException e2) {
-								bot.sendMessage(channel, e2.getMessage());
+								bot.sendMessage(channelObj, e2.getMessage());
 							} catch (YahtzyException e3) {
-								bot.sendMessage(channel, e3.getMessage());
+								bot.sendMessage(channelObj, e3.getMessage());
 							}
 						}
 					} else if (tokens[0].equals(".hold") || tokens[0].equals(".h")) {
@@ -131,7 +205,7 @@ public class YatzyBot {
 							boolean failed = false;
 							try {
 								if (tokens.length == 1) {
-									bot.sendMessage(channel, "Must choose some dice to hold!");
+									bot.sendMessage(channelObj, "Must choose some dice to hold!");
 									return;
 								}
 	
@@ -140,25 +214,25 @@ public class YatzyBot {
 	
 								if (tokens[1].equals("all")) {
 									if (tokens.length == 2) {
-										bot.sendMessage(channel, "Must specify what die number(s) to hold!");
+										bot.sendMessage(channelObj, "Must specify what die number(s) to hold!");
 										return;
 									}
 									for (int i = 2; i < tokens.length; i++) {
 										try {
 											int num = Integer.valueOf(tokens[i]);
 											if (num < 1 || num > 6) {
-												bot.sendMessage(channel, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
+												bot.sendMessage(channelObj, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
 												return;
 											}
 											for (int dienum : holdall_dienums) {
 												if (dienum == num) {
-													bot.sendMessage(channel, "Duplicate number in die numbers (" + num + ")!");
+													bot.sendMessage(channelObj, "Duplicate number in die numbers (" + num + ")!");
 													return;			        									
 												}
 											}
 											holdall_dienums.add(num);
 										} catch (NumberFormatException nfe) {
-											bot.sendMessage(channel, "Found invalid token in die numbers (" + tokens[i] + ")!");
+											bot.sendMessage(channelObj, "Found invalid token in die numbers (" + tokens[i] + ")!");
 											return;
 										}
 									}
@@ -182,9 +256,9 @@ public class YatzyBot {
 									for (int i = 0; i < holdall_nummatch.length; i++) {
 										if (holdall_nummatch[i] == 0) {
 											bot.sendMessage(
-												channel,
+												channelObj,
 												"Hold-all number not found in rolled dice: " + holdall_dienums.get(i)
-												);
+											);
 											return;
 										}
 									}
@@ -220,7 +294,7 @@ public class YatzyBot {
 									}
 	
 									if (!holdnums.isEmpty()) {
-										bot.sendMessage(channel, "Hold nums not found: " + holdnums);
+										bot.sendMessage(channelObj, "Hold nums not found: " + holdnums);
 										failed = true;
 									}
 								}
@@ -240,22 +314,22 @@ public class YatzyBot {
 											chosen.put(entry.getKey(), entry.getValue());
 										}
 									}
-									bot.sendMessage(channel, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+									bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
 								}
 							} catch (TurnException e1) {
-								bot.sendMessage(channel, e1.getMessage());
+								bot.sendMessage(channelObj, e1.getMessage());
 							} catch (RollException e2) {
-								bot.sendMessage(channel, e2.getMessage());
+								bot.sendMessage(channelObj, e2.getMessage());
 							} catch (YahtzyException e3) {
-								bot.sendMessage(channel, e3.getMessage());
+								bot.sendMessage(channelObj, e3.getMessage());
 							} catch (NumberFormatException e4) {
-								bot.sendMessage(channel, e4.getMessage());
+								bot.sendMessage(channelObj, e4.getMessage());
 							}
 						}
 					} else if (tokens[0].equals(".check") || tokens[0].equals(".ch")) {
 						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 							if (y.getTurn().getRolls() == 0) {
-								bot.sendMessage(channel, "Must do at least one roll before checking scoring.");
+								bot.sendMessage(channelObj, "Must do at least one roll before checking scoring.");
 								return;
 							}
 							ArrayList<Scoring> specific = null;
@@ -264,7 +338,7 @@ public class YatzyBot {
 								for (int i = 1; i < tokens.length; i++) {
 									Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(tokens[i].toLowerCase());
 									if (s == null) {
-										bot.sendMessage(channel, "Couldn't find the scoring for " + tokens[1].toLowerCase() + ".");
+										bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[1].toLowerCase() + ".");
 										return;
 									}
 									specific.add(s);
@@ -276,7 +350,7 @@ public class YatzyBot {
 								for (Scoring s : specific) {
 									scoring.put(s, y.getRollScores().get(s));
 								}
-								bot.sendMessage(channel, "Scoring: " + getTotalsStr(scoring, true, true));
+								bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(scoring, true, true));
 							} else {
 								Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
 								Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
@@ -289,7 +363,7 @@ public class YatzyBot {
 									}
 								}		        			
 	
-								bot.sendMessage(channel, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
+								bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
 							}	
 						}
 					} else if (tokens[0].equals(".start")) {
@@ -304,10 +378,10 @@ public class YatzyBot {
 							try {
 								y.start();
 							} catch (YahtzyException e) {
-								bot.sendMessage(channel, e.getMessage());
+								bot.sendMessage(channelObj, e.getMessage());
 							}
 						} else {
-							bot.sendMessage(channel, "Cannot start game if not participating!");
+							bot.sendMessage(channelObj, "Cannot start game if not participating!");
 						}
 					} else if (tokens[0].equals(".reset")) {
 						try {
@@ -325,18 +399,18 @@ public class YatzyBot {
 								if (found) {
 									y.reset();
 								} else {
-									bot.sendMessage(channel, "Cannot reset game if not participating, or game not finished!");
+									bot.sendMessage(channelObj, "Cannot reset game if not participating, or game not finished!");
 								}
 							}
 						} catch (YahtzyException e) {
-							bot.sendMessage(channel, e.getMessage());
+							bot.sendMessage(channelObj, e.getMessage());
 						}
 					} else if (tokens[0].equals(".play")) {
 						if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
 							try {
 								y.addPlayer(new Player(event.getUser().getNick()));
 							} catch (YahtzyException e) {
-								bot.sendMessage(channel, e.getMessage());
+								bot.sendMessage(channelObj, e.getMessage());
 							}
 						}
 					} else if (tokens[0].equals(".deleteplayer")) {
@@ -355,10 +429,10 @@ public class YatzyBot {
 									if (found) {
 										y.removePlayer(name);
 									} else {
-										bot.sendMessage(channel, "Cannot remove player if not participating, or finished!");
+										bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
 									}
 								} catch (YahtzyException e) {
-									bot.sendMessage(channel, e.getMessage());
+									bot.sendMessage(channelObj, e.getMessage());
 								}
 							}
 						}
@@ -367,16 +441,16 @@ public class YatzyBot {
 							String chosen = tokens[1];
 							Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(chosen.toLowerCase());
 							if (s == null) {
-								bot.sendMessage(channel, "Not a valid scoring!");
+								bot.sendMessage(channelObj, "Not a valid scoring!");
 							} else {
 								try {
 									y.getTurn().choose(s);
 								} catch (TurnException e) {
-									bot.sendMessage(channel, e.getMessage());
+									bot.sendMessage(channelObj, e.getMessage());
 								} catch (ScoreException e) {
-									bot.sendMessage(channel, e.getMessage());
+									bot.sendMessage(channelObj, e.getMessage());
 								} catch (YahtzyException e3) {
-									bot.sendMessage(channel, e3.getMessage());
+									bot.sendMessage(channelObj, e3.getMessage());
 								}
 							}	
 						}
@@ -384,6 +458,18 @@ public class YatzyBot {
 				}
 			}
 		});
+	}
+	
+	public String getChannel() {
+		return channel;
+	}
+	
+	public Channel getChannelObj() {
+		return channelObj;
+	}
+	public void start() {
+		bot.joinChannel(channel);
+		showInitialHelpMsg();
 	}
 	
 	public synchronized void leave(String reason) {
@@ -403,25 +489,22 @@ public class YatzyBot {
 	public static final String INITIAL_HELP_TEXT =
 		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for further contributions (http://github.com/Dessimat0r/YatzyBot). Have fun! :)";
 	;
-	public static final String[] INITIAL_HELP_TEXT_ARR = INITIAL_HELP_TEXT.split("\\r?\\n");
 	
 	public static final String HELP_TEXT =
 		"Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)\n" +
 		"Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)\n" +
 		"Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!"
 	;
-	public static final String[] HELP_TEXT_ARR = HELP_TEXT.split("\\r?\\n");
+	public static final String[] HELP_TEXT_ARR = HELP_TEXT.split("(\\r?\\n?)\\{1,2\\}");
 	
 	public void showInitialHelpMsg() {
-		for (String line : INITIAL_HELP_TEXT_ARR) {
-			bot.sendMessage(channel, line);
-		}
+		bot.sendMessage(channelObj, INITIAL_HELP_TEXT);
 	}
 	
 	public void showHelpMsg(User user) {
 		if (user == null) {
 			for (String line : HELP_TEXT_ARR) {
-				bot.sendMessage(channel, line);
+				bot.sendMessage(channelObj, line);
 			}
 			return;
 		}
@@ -429,7 +512,7 @@ public class YatzyBot {
 	}
 	
 	public void showLeaveMsg(String message) {
-		bot.sendMessage(channel, "Thanks for playing with YatzyBot! :) (Leaving now! Reason: " + message + ")");
+		bot.sendMessage(channelObj, "Thanks for playing with YatzyBot! :) (Leaving now! Reason: " + message + ")");
 	}
 
 	public static final Comparator<Entry<Scoring, Integer>> dicevalcomp = new Comparator<Map.Entry<Scoring,Integer>>() {
