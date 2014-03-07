@@ -414,26 +414,24 @@ public class YatzyBot {
 							}
 						}
 					} else if (tokens[0].equals(".deleteplayer")) {
-						if (tokens[0].equals(".deleteplayer")) {
-							if (tokens.length >= 2) {
-								String name = tokens[1];
-								try {
-									// check players
-									boolean found = false;
-									for (Player p : y.getPlayers()) {
-										if (event.getUser().getNick().equals(p.getName())) {
-											found = true;
-											break;
-										}
+						if (tokens.length >= 2) {
+							String name = tokens[1];
+							try {
+								// check players
+								boolean found = false;
+								for (Player p : y.getPlayers()) {
+									if (event.getUser().getNick().equals(p.getName())) {
+										found = true;
+										break;
 									}
-									if (found) {
-										y.removePlayer(name);
-									} else {
-										bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
-									}
-								} catch (YahtzyException e) {
-									bot.sendMessage(channelObj, e.getMessage());
 								}
+								if (found) {
+									y.removePlayer(name);
+								} else {
+									bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
+								}
+							} catch (YahtzyException e) {
+								bot.sendMessage(channelObj, e.getMessage());
 							}
 						}
 					} else if (tokens[0].equals(".choose") || tokens[0].equals(".c")) {
