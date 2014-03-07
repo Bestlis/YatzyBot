@@ -25,6 +25,11 @@ Usage:
 
 Example command line: `java -jar yatzybot.jar irc.yourserver.net #yatzy,#chatland pimppi@irc.myserver.fi #hissi,#kissa`.
 
+Requirements:
+
+* Java 6+
+* Few hardware requirements, very small footprint. Would probably run on a C64 if compiled.
+
 License:
 
 Licensed under the GPL v3.
