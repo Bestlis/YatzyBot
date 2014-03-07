@@ -342,14 +342,14 @@ public class YatzyBot {
 									bot.sendMessage(channelObj, "Must do at least one roll before checking scoring.");
 									return;
 								}
-								String[] tokens = event.getMessage().split(" ");
 								ArrayList<Scoring> specific = null;
-								if (tokens.length > 1) {
+								if (follow != null) {
+									String[] tokens = follow.split(" ");
 									specific = new ArrayList<Scoring>();
-									for (int i = 1; i < tokens.length; i++) {
+									for (int i = 0; i < tokens.length; i++) {
 										Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(tokens[i].toLowerCase());
 										if (s == null) {
-											bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[1].toLowerCase() + ".");
+											bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[i].toLowerCase() + ".");
 											return;
 										}
 										specific.add(s);
