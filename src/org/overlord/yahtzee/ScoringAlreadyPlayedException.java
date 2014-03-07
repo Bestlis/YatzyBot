@@ -5,11 +5,8 @@
 
 package org.overlord.yahtzee;
 
-public class ScoreException extends YatzyException {
-	public ScoreException() {
-	}
-
-	public ScoreException(String arg0) {
-		super(arg0);
+public class ScoringAlreadyPlayedException extends TurnException {
+	public ScoringAlreadyPlayedException(String message) {
+		super(message);
 	}
 }

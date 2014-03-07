@@ -34,7 +34,7 @@ public class Turn {
 	}
 	
 	public boolean[] roll() throws YatzyException {
-		if (rolls == 3) throw new TurnException("Used all 3 rolls.");
+		if (rolls == 3) throw new UsedAllRollsException("Used all 3 rolls.");
 		boolean[] rolled = y.roll();
 		diceVals = Yahtzee.dice2Vals(y.getDice(), null);
 		Arrays.sort(diceVals);
@@ -44,8 +44,8 @@ public class Turn {
 	}
 	
 	public boolean[] rollNumbers(int[] which) throws YatzyException {
-		if (rolls == 0) throw new TurnException("Must roll at least once to reroll certain numbers");
-		if (rolls == 3) throw new TurnException("Used all 3 rolls.");
+		if (rolls == 0) throw new ReqRollException("Must roll at least once to reroll certain numbers");
+		if (rolls == 3) throw new UsedAllRollsException("Used all 3 rolls.");
 		boolean[] rolled = y.rollNumbers(which);
 		diceVals = Yahtzee.dice2Vals(y.getDice(), null);
 		Arrays.sort(diceVals);
@@ -59,7 +59,7 @@ public class Turn {
 	}
 	
 	public void choose(Scoring scoring) throws YatzyException {
-		if (rolls == 0) throw new TurnException("Must roll at least once!");
+		if (rolls == 0) throw new ReqRollException("Must roll at least once!");
 		player.setScore(scoring, scores.get(scoring));
 		done = true;
 		y.turnComplete(this);

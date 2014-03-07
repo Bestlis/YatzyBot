@@ -5,12 +5,8 @@
 
 package org.overlord.yahtzee;
 
-public class RollException extends YatzyException {
-	public RollException() {
+public class PlayerNotExistsException extends YatzyException {
+	public PlayerNotExistsException(String message) {
+		super(message);
 	}
-
-	public RollException(String arg0) {
-		super(arg0);
-	}
-
 }

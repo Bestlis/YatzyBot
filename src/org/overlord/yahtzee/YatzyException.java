@@ -5,7 +5,7 @@
 
 package org.overlord.yahtzee;
 
-public class YatzyException extends Exception {
+public abstract class YatzyException extends Exception {
 	public YatzyException() {
 	}
 

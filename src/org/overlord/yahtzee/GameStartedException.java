@@ -5,11 +5,8 @@
 
 package org.overlord.yahtzee;
 
-public abstract class TurnException extends YatzyException {
-	public TurnException() {
-	}
-
-	public TurnException(String arg0) {
-		super(arg0);
+public class GameStartedException extends YatzyException {
+	public GameStartedException(String message) {
+		super(message);
 	}
 }

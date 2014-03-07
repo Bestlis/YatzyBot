@@ -15,8 +15,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 
 import org.overlord.yahtzee.Player;
-import org.overlord.yahtzee.RollException;
-import org.overlord.yahtzee.ScoreException;
 import org.overlord.yahtzee.Scoring;
 import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.TurnException;
@@ -202,10 +200,6 @@ public class YatzyBot {
 									}
 		
 									bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
-								} catch (TurnException e1) {
-									bot.sendMessage(channelObj, e1.getMessage());
-								} catch (RollException e2) {
-									bot.sendMessage(channelObj, e2.getMessage());
 								} catch (YatzyException e3) {
 									bot.sendMessage(channelObj, e3.getMessage());
 								}
@@ -325,11 +319,7 @@ public class YatzyBot {
 											}
 										}
 										bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
-									}
-								} catch (TurnException e1) {
-									bot.sendMessage(channelObj, e1.getMessage());
-								} catch (RollException e2) {
-									bot.sendMessage(channelObj, e2.getMessage());
+									};
 								} catch (YatzyException e3) {
 									bot.sendMessage(channelObj, e3.getMessage());
 								} catch (NumberFormatException e4) {
@@ -457,8 +447,6 @@ public class YatzyBot {
 									try {
 										y.getTurn().choose(s);
 									} catch (TurnException e) {
-										bot.sendMessage(channelObj, e.getMessage());
-									} catch (ScoreException e) {
 										bot.sendMessage(channelObj, e.getMessage());
 									} catch (YatzyException e3) {
 										bot.sendMessage(channelObj, e3.getMessage());

@@ -41,7 +41,7 @@ public class Yahtzee {
 	}
 
 	public synchronized boolean[] rollNumbers(int[] which) throws YatzyException {
-		if (finished) throw new YatzyException("Game complete!");
+		if (finished) throw new GameCompleteException("Game complete!");
 		
 		boolean[] toRoll = new boolean[5];
 		for (int i = 0; i < which.length; i++) {
@@ -56,10 +56,10 @@ public class Yahtzee {
 				}
 			}
 			if (!found) {
-				throw new RollException(
+				throw new RollNumberNotFoundException(
 					"Couldn't find die index of " + numToRoll +
 					" to roll again! (arr: " + Arrays.toString(which) +
-					", index: " + i + ")"
+					", index: " + i + ")", numToRoll
 				);
 			}
 		}
@@ -72,7 +72,7 @@ public class Yahtzee {
 	}
 
 	public synchronized boolean[] roll(boolean[] which) throws YatzyException {
-		if (finished) throw new YatzyException("Game complete!");
+		if (finished) throw new GameCompleteException("Game complete!");
 		
 		if (which == null) {
 			which = new boolean[dice.length];
@@ -131,7 +131,7 @@ public class Yahtzee {
 	}
 	
 	public synchronized void addPlayer(Player p) throws YatzyException {
-		if (started) throw new YatzyException("Cannot add players after game start!");
+		if (started) throw new GameStartedException("Cannot add players after game start!");
 		
 		this.players.add(p);
 		this.playerMap.put(p.getName(), p);
@@ -150,8 +150,8 @@ public class Yahtzee {
 	}
 	
 	public synchronized void start() throws YatzyException {
-		if (started) throw new YatzyException("Cannot start a game that is already started! Reset first :))");
-		if (finished) throw new YatzyException("Cannot start a finished game! Reset first :))");
+		if (started) throw new GameStartedException("Cannot start a game that is already started! Reset first :))");
+		if (finished) throw new GameCompleteException("Cannot start a finished game! Reset first :))");
 		started = true;
 		for (YatzyListener l : listeners) {
 			l.onStart(this);
@@ -256,7 +256,7 @@ public class Yahtzee {
 
 	public synchronized void removePlayer(String name) throws YatzyException {
 		Player p = playerMap.get(name);
-		if (p == null) throw new YatzyException("Player " + name + " doesn't exist!");
+		if (p == null) throw new PlayerNotExistsException("Player " + name + " doesn't exist!");
 		if (turn != null && turn.getPlayer() == p) {
 			turnComplete(turn);
 			turnDone(turn);
