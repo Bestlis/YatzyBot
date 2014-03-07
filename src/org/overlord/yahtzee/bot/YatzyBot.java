@@ -16,6 +16,7 @@ import java.util.Map.Entry;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.overlord.yahtzee.Player;
+import org.overlord.yahtzee.RollNumberNotFoundException;
 import org.overlord.yahtzee.Scoring;
 import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.TurnException;
@@ -214,7 +215,16 @@ public class YatzyBot {
 											int num = Integer.parseInt(tokens[i]);
 											nums[i] = num;
 										}
-										rolled = y.getTurn().rollNumbers(nums);
+										try {
+											rolled = y.getTurn().rollNumbers(nums);
+										} catch (RollNumberNotFoundException e) {
+											bot.sendMessage(
+												event.getChannel(),
+												"Die face value not found for rolling: " +
+												e.getNumToRoll()
+											);
+											return;
+										}
 									}
 									Map<Scoring, Integer> scores = y.getRollScores();
 		
