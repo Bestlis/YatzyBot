@@ -5,7 +5,7 @@
 
 package org.overlord.yahtzee;
 
-public class RollException extends YahtzyException {
+public class RollException extends YatzyException {
 	public RollException() {
 	}
 

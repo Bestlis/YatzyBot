@@ -5,7 +5,7 @@
 
 package org.overlord.yahtzee;
 
-public class ScoreException extends YahtzyException {
+public class ScoreException extends YatzyException {
 	public ScoreException() {
 	}
 

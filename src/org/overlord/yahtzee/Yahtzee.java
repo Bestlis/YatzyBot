@@ -40,8 +40,8 @@ public class Yahtzee {
 
 	}
 
-	public boolean[] rollNumbers(int[] which) throws YahtzyException {
-		if (finished) throw new YahtzyException("Game complete!");
+	public boolean[] rollNumbers(int[] which) throws YatzyException {
+		if (finished) throw new YatzyException("Game complete!");
 		
 		boolean[] toRoll = new boolean[5];
 		for (int i = 0; i < which.length; i++) {
@@ -71,8 +71,8 @@ public class Yahtzee {
 		return toRoll;
 	}
 
-	public boolean[] roll(boolean[] which) throws YahtzyException {
-		if (finished) throw new YahtzyException("Game complete!");
+	public boolean[] roll(boolean[] which) throws YatzyException {
+		if (finished) throw new YatzyException("Game complete!");
 		
 		if (which == null) {
 			which = new boolean[dice.length];
@@ -86,7 +86,7 @@ public class Yahtzee {
 		return which;
 	}
 
-	public boolean[] roll() throws YahtzyException {
+	public boolean[] roll() throws YatzyException {
 		return roll(null);
 	}
 	
@@ -130,8 +130,8 @@ public class Yahtzee {
 		}
 	}
 	
-	public void addPlayer(Player p) throws YahtzyException {
-		if (started) throw new YahtzyException("Cannot add players after game start!");
+	public void addPlayer(Player p) throws YatzyException {
+		if (started) throw new YatzyException("Cannot add players after game start!");
 		
 		this.players.add(p);
 		this.playerMap.put(p.getName(), p);
@@ -149,9 +149,9 @@ public class Yahtzee {
 		return turn;
 	}
 	
-	public void start() throws YahtzyException {
-		if (started) throw new YahtzyException("Cannot start a game that is already started! Reset first :))");
-		if (finished) throw new YahtzyException("Cannot start a finished game! Reset first :))");
+	public void start() throws YatzyException {
+		if (started) throw new YatzyException("Cannot start a game that is already started! Reset first :))");
+		if (finished) throw new YatzyException("Cannot start a finished game! Reset first :))");
 		started = true;
 		for (YatzyListener l : listeners) {
 			l.onStart(this);
@@ -162,7 +162,7 @@ public class Yahtzee {
 		}
 	}
 	
-	public void reset() throws YahtzyException {
+	public void reset() throws YatzyException {
 		players.clear();
 		playerMap.clear();
 		turn = null;
@@ -191,7 +191,7 @@ public class Yahtzee {
 			y.start();
 			y.getTurn().roll();
 			y.getTurn().getDiceVals();
-		} catch (YahtzyException te) {
+		} catch (YatzyException te) {
 			te.printStackTrace();
 		}
 		/*
@@ -254,9 +254,9 @@ public class Yahtzee {
 		return players;
 	}
 
-	public void removePlayer(String name) throws YahtzyException {
+	public void removePlayer(String name) throws YatzyException {
 		Player p = playerMap.get(name);
-		if (p == null) throw new YahtzyException("Player " + name + " doesn't exist!");
+		if (p == null) throw new YatzyException("Player " + name + " doesn't exist!");
 		if (turn != null && turn.getPlayer() == p) {
 			turnComplete(turn);
 			turnDone(turn);

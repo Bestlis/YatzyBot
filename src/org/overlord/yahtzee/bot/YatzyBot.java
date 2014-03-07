@@ -21,7 +21,7 @@ import org.overlord.yahtzee.Scoring;
 import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.TurnException;
 import org.overlord.yahtzee.Yahtzee;
-import org.overlord.yahtzee.YahtzyException;
+import org.overlord.yahtzee.YatzyException;
 import org.overlord.yahtzee.YatzyListener;
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
@@ -152,161 +152,47 @@ public class YatzyBot {
 					if (!event.getChannel().equals(channelObj)) {
 						return; // ignore
 					}
-					String[] tokens = event.getMessage().split(" ");
-					if (tokens[0].equals(".help")) {
-						showHelpMsg(event.getUser());
-					} else if (tokens[0].equals(".credits")) {
-						bot.sendNotice(
-							event.getUser(),
-							"YatzyBot " + VERSION + " by Overlord Industries " +
-							"(Chris Dennett / Dessimat0r / dessimat0r@gmail.com) " +
-							"and other contributors (none yet, add your name and " +
-							"e-mail here if you contribute)."
-						);
-					} else if (tokens[0].equals(".roll") || tokens[0].equals(".r")) {
-						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-							final boolean[] rolled;
-							try {
-								if (tokens.length == 1) {
-									rolled = y.getTurn().roll();
-								} else {
-									int[] nums = new int[tokens.length - 1];
-									// parse other numbers
-									for (int i = 1; i < tokens.length; i++) {
-										int num = Integer.parseInt(tokens[i]);
-										nums[i - 1] = num;
-									}
-									rolled = y.getTurn().rollNumbers(nums);
-								}
-								Map<Scoring, Integer> scores = y.getRollScores();
-	
-								Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
-								Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-	
-								for (Entry<Scoring, Integer> entry : scores.entrySet()) {
-									if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
-										unchosen.put(entry.getKey(), entry.getValue());
+					if (event.getChannel() != null) {
+						if (event.getMessage() == null || event.getMessage().isEmpty()) return;
+						
+						boolean hasCmdPr = event.getMessage().charAt(0) == '.';
+						if (!hasCmdPr) return;
+						int spc_i = event.getMessage().indexOf(' ');
+						
+						final String first  = spc_i == -1 ? event.getMessage() : event.getMessage().substring(0,spc_i);
+						final String follow = spc_i == -1 ? null : event.getMessage().substring(spc_i + 1);
+						
+						if (first.equals(".help")) {
+							showHelpMsg(event.getUser());
+						} else if (first.equals(".credits")) {
+							bot.sendNotice(
+								event.getUser(),
+								"YatzyBot " + VERSION + " by Overlord Industries " +
+								"(Chris Dennett / Dessimat0r / dessimat0r@gmail.com) " +
+								"and other contributors (none yet, add your name and " +
+								"e-mail here if you contribute)."
+							);
+						} else if (first.equals(".roll") || first.equals(".r")) {
+							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
+								final boolean[] rolled;
+								try {
+									if (follow == null) {
+										rolled = y.getTurn().roll();
 									} else {
-										chosen.put(entry.getKey(), entry.getValue());
-									}
-								}
-	
-								bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
-							} catch (TurnException e1) {
-								bot.sendMessage(channelObj, e1.getMessage());
-							} catch (RollException e2) {
-								bot.sendMessage(channelObj, e2.getMessage());
-							} catch (YahtzyException e3) {
-								bot.sendMessage(channelObj, e3.getMessage());
-							}
-						}
-					} else if (tokens[0].equals(".hold") || tokens[0].equals(".h")) {
-						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-							boolean failed = false;
-							try {
-								if (tokens.length == 1) {
-									bot.sendMessage(channelObj, "Must choose some dice to hold!");
-									return;
-								}
-	
-								ArrayList<Integer> holdall_dienums  = new ArrayList<Integer>();
-								int[] holdall_nummatch = null;
-	
-								if (tokens[1].equals("all")) {
-									if (tokens.length == 2) {
-										bot.sendMessage(channelObj, "Must specify what die number(s) to hold!");
-										return;
-									}
-									for (int i = 2; i < tokens.length; i++) {
-										try {
-											int num = Integer.valueOf(tokens[i]);
-											if (num < 1 || num > 6) {
-												bot.sendMessage(channelObj, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
-												return;
-											}
-											for (int dienum : holdall_dienums) {
-												if (dienum == num) {
-													bot.sendMessage(channelObj, "Duplicate number in die numbers (" + num + ")!");
-													return;			        									
-												}
-											}
-											holdall_dienums.add(num);
-										} catch (NumberFormatException nfe) {
-											bot.sendMessage(channelObj, "Found invalid token in die numbers (" + tokens[i] + ")!");
-											return;
+										String[] tokens = follow.split(" ");
+										int[] nums = new int[tokens.length];
+										// parse other numbers
+										for (int i = 0; i < tokens.length; i++) {
+											int num = Integer.parseInt(tokens[i]);
+											nums[i] = num;
 										}
+										rolled = y.getTurn().rollNumbers(nums);
 									}
-									holdall_nummatch = new int[holdall_dienums.size()];
-								}
-								ArrayList<Integer> holdnums = new ArrayList<Integer>();
-								ArrayList<Integer> rollnums = new ArrayList<Integer>();
-	
-								if (holdall_dienums.size() > 0) {
-									dice_chk: for (int i = 0; i < y.getDice().length; i++) {
-										int d = y.getDice()[i].getFaceValue();	
-										for (int j = 0; j < holdall_dienums.size(); j++) {
-											if (holdall_dienums.get(j) == d) {
-												holdnums.add(d);
-												holdall_nummatch[j]++;
-												continue dice_chk;
-											}
-										}	
-										rollnums.add(d);
-									}
-									for (int i = 0; i < holdall_nummatch.length; i++) {
-										if (holdall_nummatch[i] == 0) {
-											bot.sendMessage(
-												channelObj,
-												"Hold-all number not found in rolled dice: " + holdall_dienums.get(i)
-											);
-											return;
-										}
-									}
-								} else {
-									// parse other numbers
-									for (int i = 1; i < tokens.length; i++) {
-										int num = Integer.parseInt(tokens[i]);
-										holdnums.add(num);
-									}
-	
-									for (int i = 0; i < y.getDice().length; i++) {
-										int d = y.getDice()[i].getFaceValue();
-	
-										if (holdnums.isEmpty()) {
-											rollnums.add(d);
-											continue;
-										}
-	
-										ListIterator<Integer> iter = holdnums.listIterator();
-	
-										boolean found = false;
-										while (iter.hasNext()) {
-											int holdnum = iter.next().intValue();
-											if (holdnum == d) {
-												iter.remove();
-												found = true;
-												break;
-											}
-										}
-										if (!found) {
-											rollnums.add(d);
-										}
-									}
-	
-									if (!holdnums.isEmpty()) {
-										bot.sendMessage(channelObj, "Hold nums not found: " + holdnums);
-										failed = true;
-									}
-								}
-	
-								if (!failed) {
-									boolean[] rolled = y.getTurn().rollNumbers(convertIntegers(rollnums));
-	
 									Map<Scoring, Integer> scores = y.getRollScores();
-	
+		
 									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
 									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-	
+		
 									for (Entry<Scoring, Integer> entry : scores.entrySet()) {
 										if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
 											unchosen.put(entry.getKey(), entry.getValue());
@@ -314,143 +200,271 @@ public class YatzyBot {
 											chosen.put(entry.getKey(), entry.getValue());
 										}
 									}
+		
 									bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
-								}
-							} catch (TurnException e1) {
-								bot.sendMessage(channelObj, e1.getMessage());
-							} catch (RollException e2) {
-								bot.sendMessage(channelObj, e2.getMessage());
-							} catch (YahtzyException e3) {
-								bot.sendMessage(channelObj, e3.getMessage());
-							} catch (NumberFormatException e4) {
-								bot.sendMessage(channelObj, e4.getMessage());
-							}
-						}
-					} else if (tokens[0].equals(".check") || tokens[0].equals(".ch")) {
-						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-							if (y.getTurn().getRolls() == 0) {
-								bot.sendMessage(channelObj, "Must do at least one roll before checking scoring.");
-								return;
-							}
-							ArrayList<Scoring> specific = null;
-							if (tokens.length > 1) {
-								specific = new ArrayList<Scoring>();
-								for (int i = 1; i < tokens.length; i++) {
-									Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(tokens[i].toLowerCase());
-									if (s == null) {
-										bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[1].toLowerCase() + ".");
-										return;
-									}
-									specific.add(s);
-								}
-							}
-	
-							if (specific != null) {
-								Map<Scoring, Integer> scoring = new EnumMap<Scoring, Integer>(Scoring.class);
-								for (Scoring s : specific) {
-									scoring.put(s, y.getRollScores().get(s));
-								}
-								bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(scoring, true, true));
-							} else {
-								Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
-								Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-	
-								for (Entry<Scoring, Integer> entry : y.getRollScores().entrySet()) {
-									if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
-										unchosen.put(entry.getKey(), entry.getValue());
-									} else {
-										chosen.put(entry.getKey(), entry.getValue());
-									}
-								}		        			
-	
-								bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
-							}	
-						}
-					} else if (tokens[0].equals(".start")) {
-						boolean found = false;
-						for (Player p : y.getPlayers()) {
-							if (event.getUser().getNick().equals(p.getName())) {
-								found = true;
-								break;
-							}
-						}
-						if (found) {
-							try {
-								y.start();
-							} catch (YahtzyException e) {
-								bot.sendMessage(channelObj, e.getMessage());
-							}
-						} else {
-							bot.sendMessage(channelObj, "Cannot start game if not participating!");
-						}
-					} else if (tokens[0].equals(".reset")) {
-						try {
-							if (!y.isStarted() || y.isFinished()) {
-								y.reset();
-							} else if (y.isStarted()) {
-								// check players
-								boolean found = false;
-								for (Player p : y.getPlayers()) {
-									if (event.getUser().getNick().equals(p.getName())) {
-										found = true;
-										break;
-									}
-								}
-								if (found) {
-									y.reset();
-								} else {
-									bot.sendMessage(channelObj, "Cannot reset game if not participating, or game not finished!");
-								}
-							}
-						} catch (YahtzyException e) {
-							bot.sendMessage(channelObj, e.getMessage());
-						}
-					} else if (tokens[0].equals(".play")) {
-						if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
-							try {
-								y.addPlayer(new Player(event.getUser().getNick()));
-							} catch (YahtzyException e) {
-								bot.sendMessage(channelObj, e.getMessage());
-							}
-						}
-					} else if (tokens[0].equals(".deleteplayer")) {
-						if (tokens.length >= 2) {
-							String name = tokens[1];
-							try {
-								// check players
-								boolean found = false;
-								for (Player p : y.getPlayers()) {
-									if (event.getUser().getNick().equals(p.getName())) {
-										found = true;
-										break;
-									}
-								}
-								if (found) {
-									y.removePlayer(name);
-								} else {
-									bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
-								}
-							} catch (YahtzyException e) {
-								bot.sendMessage(channelObj, e.getMessage());
-							}
-						}
-					} else if (tokens[0].equals(".choose") || tokens[0].equals(".c")) {
-						if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-							String chosen = tokens[1];
-							Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(chosen.toLowerCase());
-							if (s == null) {
-								bot.sendMessage(channelObj, "Not a valid scoring!");
-							} else {
-								try {
-									y.getTurn().choose(s);
-								} catch (TurnException e) {
-									bot.sendMessage(channelObj, e.getMessage());
-								} catch (ScoreException e) {
-									bot.sendMessage(channelObj, e.getMessage());
-								} catch (YahtzyException e3) {
+								} catch (TurnException e1) {
+									bot.sendMessage(channelObj, e1.getMessage());
+								} catch (RollException e2) {
+									bot.sendMessage(channelObj, e2.getMessage());
+								} catch (YatzyException e3) {
 									bot.sendMessage(channelObj, e3.getMessage());
 								}
-							}	
+							}
+						} else if (first.equals(".hold") || first.equals(".h")) {
+							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
+								boolean failed = false;
+								try {
+									if (follow == null) {
+										bot.sendMessage(channelObj, "Must choose some dice to hold!");
+										return;
+									}
+									String[] tokens = follow.split(" ");
+									ArrayList<Integer> holdall_dienums  = new ArrayList<Integer>();
+									int[] holdall_nummatch = null;
+		
+									if (tokens[0].equals("all")) {
+										if (tokens.length == 1) {
+											bot.sendMessage(channelObj, "Must specify what die number(s) to hold!");
+											return;
+										}
+										for (int i = 1; i < tokens.length; i++) {
+											try {
+												int num = Integer.valueOf(tokens[i]);
+												if (num < 1 || num > 6) {
+													bot.sendMessage(channelObj, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
+													return;
+												}
+												for (int dienum : holdall_dienums) {
+													if (dienum == num) {
+														bot.sendMessage(channelObj, "Duplicate number in die numbers (" + num + ")!");
+														return;	        									
+													}
+												}
+												holdall_dienums.add(num);
+											} catch (NumberFormatException nfe) {
+												bot.sendMessage(channelObj, "Found invalid token in die numbers (" + tokens[i] + ")!");
+												return;
+											}
+										}
+										holdall_nummatch = new int[holdall_dienums.size()];
+									}
+									ArrayList<Integer> holdnums = new ArrayList<Integer>();
+									ArrayList<Integer> rollnums = new ArrayList<Integer>();
+		
+									if (holdall_dienums.size() > 0) {
+										dice_chk: for (int i = 0; i < y.getDice().length; i++) {
+											int d = y.getDice()[i].getFaceValue();	
+											for (int j = 0; j < holdall_dienums.size(); j++) {
+												if (holdall_dienums.get(j) == d) {
+													holdnums.add(d);
+													holdall_nummatch[j]++;
+													continue dice_chk;
+												}
+											}	
+											rollnums.add(d);
+										}
+										for (int i = 0; i < holdall_nummatch.length; i++) {
+											if (holdall_nummatch[i] == 0) {
+												bot.sendMessage(
+													channelObj,
+													"Hold- ll number not found in rolled dice: " + holdall_dienums.get(i)
+												);
+												return;
+											}
+										}
+									} else {
+										// parse other numbers
+										for (int i = 0; i < tokens.length; i++) {
+											int num = Integer.parseInt(tokens[i]);
+											holdnums.add(num);
+										}
+		
+										for (int i = 0; i < y.getDice().length; i++) {
+											int d = y.getDice()[i].getFaceValue();
+		
+											if (holdnums.isEmpty()) {
+												rollnums.add(d);
+												continue;
+											}
+		
+											ListIterator<Integer> iter = holdnums.listIterator();
+		
+											boolean found = false;
+											while (iter.hasNext()) {
+												int holdnum = iter.next().intValue();
+												if (holdnum == d) {
+													iter.remove();
+													found = true;
+													break;
+												}
+											}
+											if (!found) {
+												rollnums.add(d);
+											}
+										}
+		
+										if (!holdnums.isEmpty()) {
+											bot.sendMessage(channelObj, "Hold nums not found: " + holdnums);
+											failed = true;
+										}
+									}
+		
+									if (!failed) {
+										boolean[] rolled = y.getTurn().rollNumbers(convertIntegers(rollnums));
+		
+										Map<Scoring, Integer> scores = y.getRollScores();
+		
+										Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+										Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+		
+										for (Entry<Scoring, Integer> entry : scores.entrySet()) {
+											if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
+												unchosen.put(entry.getKey(), entry.getValue());
+											} else {
+												chosen.put(entry.getKey(), entry.getValue());
+											}
+										}
+										bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+									}
+								} catch (TurnException e1) {
+									bot.sendMessage(channelObj, e1.getMessage());
+								} catch (RollException e2) {
+									bot.sendMessage(channelObj, e2.getMessage());
+								} catch (YatzyException e3) {
+									bot.sendMessage(channelObj, e3.getMessage());
+								} catch (NumberFormatException e4) {
+									bot.sendMessage(channelObj, e4.getMessage());
+								}
+							}
+						} else if (first.equals(".check") || first.equals(".ch")) {
+							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
+								if (y.getTurn().getRolls() == 0) {
+									bot.sendMessage(channelObj, "Must do at least one roll before checking scoring.");
+									return;
+								}
+								String[] tokens = event.getMessage().split(" ");
+								ArrayList<Scoring> specific = null;
+								if (tokens.length > 1) {
+									specific = new ArrayList<Scoring>();
+									for (int i = 1; i < tokens.length; i++) {
+										Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(tokens[i].toLowerCase());
+										if (s == null) {
+											bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[1].toLowerCase() + ".");
+											return;
+										}
+										specific.add(s);
+									}
+								}
+		
+								if (specific != null) {
+									Map<Scoring, Integer> scoring = new EnumMap<Scoring, Integer>(Scoring.class);
+									for (Scoring s : specific) {
+										scoring.put(s, y.getRollScores().get(s));
+									}
+									bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(scoring, true, true));
+								} else {
+									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+		
+									for (Entry<Scoring, Integer> entry : y.getRollScores().entrySet()) {
+										if (y.getTurn().getPlayer().getTotals().get(entry.getKey()) == -1) {
+											unchosen.put(entry.getKey(), entry.getValue());
+										} else {
+											chosen.put(entry.getKey(), entry.getValue());
+										}
+									}		        			
+		
+									bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
+								}	
+							}
+						} else if (first.equals(".start")) {
+							boolean found = false;
+							for (Player p : y.getPlayers()) {
+								if (event.getUser().getNick().equals(p.getName())) {
+									found = true;
+									break;
+								}
+							}
+							if (found) {
+								try {
+									y.start();
+								} catch (YatzyException e) {
+									bot.sendMessage(channelObj, e.getMessage());
+								}
+							} else {
+								bot.sendMessage(channelObj, "Cannot start game if not participating!");
+							}
+						} else if (first.equals(".reset")) {
+							try {
+								if (!y.isStarted() || y.isFinished()) {
+									y.reset();
+								} else if (y.isStarted()) {
+									// check players
+									boolean found = false;
+									for (Player p : y.getPlayers()) {
+										if (event.getUser().getNick().equals(p.getName())) {
+											found = true;
+											break;
+										}
+									}
+									if (found) {
+										y.reset();
+									} else {
+										bot.sendMessage(channelObj, "Cannot reset game if not participating, or game not finished!");
+									}
+								}
+							} catch (YatzyException e) {
+								bot.sendMessage(channelObj, e.getMessage());
+							}
+						} else if (first.equals(".play")) {
+							if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
+								try {
+									y.addPlayer(new Player(event.getUser().getNick()));
+								} catch (YatzyException e) {
+									bot.sendMessage(channelObj, e.getMessage());
+								}
+							}
+						} else if (first.equals(".deleteplayer")) {
+							String[] tokens = event.getMessage().split(" ");
+							if (tokens.length >= 2) {
+								String name = tokens[1];
+								try {
+									// check players
+									boolean found = false;
+									for (Player p : y.getPlayers()) {
+										if (event.getUser().getNick().equals(p.getName())) {
+											found = true;
+											break;
+										}
+									}
+									if (found) {
+										y.removePlayer(name);
+									} else {
+										bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
+									}
+								} catch (YatzyException e) {
+									bot.sendMessage(channelObj, e.getMessage());
+								}
+							}
+						} else if (first.equals(".choose") || first.equals(".c")) {
+							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
+								String[] tokens = event.getMessage().split(" ");
+								String chosen = tokens[1];
+								Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(chosen.toLowerCase());
+								if (s == null) {
+									bot.sendMessage(channelObj, "Not a valid scoring!");
+								} else {
+									try {
+										y.getTurn().choose(s);
+									} catch (TurnException e) {
+										bot.sendMessage(channelObj, e.getMessage());
+									} catch (ScoreException e) {
+										bot.sendMessage(channelObj, e.getMessage());
+									} catch (YatzyException e3) {
+										bot.sendMessage(channelObj, e3.getMessage());
+									}
+								}	
+							}
 						}
 					}
 				}

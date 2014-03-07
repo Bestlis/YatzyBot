@@ -5,7 +5,7 @@
 
 package org.overlord.yahtzee;
 
-public class TurnException extends YahtzyException {
+public class TurnException extends YatzyException {
 	public TurnException() {
 	}
 
