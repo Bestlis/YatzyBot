@@ -1,7 +1,10 @@
 package org.overlord.yahtzee.bot;
 
 import java.io.IOException;
+import java.math.BigInteger;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Random;
 
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
@@ -11,15 +14,21 @@ import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.ConnectEvent;
 
 public class YatzyUser {
+	public static final String PASSWORD = new BigInteger(130, new SecureRandom()).toString(32);
+	
 	public static class ServerDef {
 		protected final String   username;
 		protected final String   server;
 		protected final String[] channels;
+		protected final String[] admins;
+		protected final char     adminMode;
 		
-		public ServerDef(String username, String server, String[] channels) {
-			this.username = username;
-			this.server   = server;
-			this.channels = channels;
+		public ServerDef(String username, String server, String[] channels, String[] admins, char adminMode) {
+			this.username  = username;
+			this.server    = server;
+			this.channels  = channels;
+			this.admins    = admins;
+			this.adminMode = adminMode;
 		}
 		
 		public String getUsername() {
@@ -33,6 +42,14 @@ public class YatzyUser {
 		public String getServer() {
 			return server;
 		}
+		
+		public String[] getAdmins() {
+			return admins;
+		}
+		
+		public char getAdminMode() {
+			return adminMode;
+		}
 	}
 	
 	protected static final ArrayList<YatzyUser> users = new ArrayList<YatzyUser>();
@@ -43,8 +60,8 @@ public class YatzyUser {
 	protected final ListenerAdapter<PircBotX> listener;
 	protected volatile static String quitReason = null;
 	
-	public YatzyUser(String username, String server, String channels[]) {
-		this(new ServerDef(username, server, channels));
+	public YatzyUser(String username, String server, String channels[], String[] admins, char adminMode) {
+		this(new ServerDef(username, server, channels, admins, adminMode));
 	}
 	
 	public YatzyUser(ServerDef def) {
@@ -67,8 +84,8 @@ public class YatzyUser {
 		}
 	}
 	
-	public YatzyUser(String nick, String server, String channel) {
-		this(nick, server, new String[] { channel });
+	public YatzyUser(String nick, String server, String channel, String admin) {
+		this(nick, server, new String[] { channel }, new String[] { admin }, 'r');
 	}
 	
 	public ServerDef getServerDef() {
@@ -83,6 +100,10 @@ public class YatzyUser {
 	public synchronized void connect() throws NickAlreadyInUseException, IrcException, IOException {
 		System.out.println(this + ": start");
 		bot.connect(serverDef.getServer());
+	}
+	
+	public synchronized void disconnect() {
+		bot.disconnect();
 	}
 	
 	public PircBotX getBot() {
@@ -110,16 +131,31 @@ public class YatzyUser {
 			String   chans    = args[(i * 2) + 1];
 			String[] chansArr = null;
 			
-			String username = "YatzyBot";
-			String server   = null;
+			String username  = "YatzyBot";
+			String server    = null;
+			String admin     = null;
+			char   adminMode = 'r';
 			
-			int at_index = serverT.indexOf('@');
+			int at_index    = serverT.indexOf('@');
 			
 			if (at_index != -1) {
 				username = serverT.substring(0, at_index);
-				server   = serverT.substring(at_index + 1);
+				String serverOrig = serverT.substring(at_index + 1);
+				int tilde_index = serverOrig.indexOf('~');
+				if (tilde_index != -1) {
+					server = serverOrig.substring(0, tilde_index);
+					admin = serverOrig.substring(tilde_index + 1);
+				} else {
+					server = serverOrig;
+				}
 			} else {
-				server = serverT;
+				int tilde_index = serverT.indexOf('~');
+				if (tilde_index != -1) {
+					server = serverT.substring(0, tilde_index);
+					admin = serverT.substring(tilde_index + 1);
+				} else {
+					server = serverT;
+				}
 			}
 			
 			if (!chans.equals("none")) {
@@ -132,16 +168,21 @@ public class YatzyUser {
 					}
 				}
 			}
-			defs.add(new ServerDef(username, server, chansArr));
+			defs.add(
+				new ServerDef(username, server, chansArr, admin == null ? null : new String[] { admin }, 'r')
+			);
 		}
+		System.out.println(
+			"Password is '" + PASSWORD + "'. Use this if you specified no administrators when privately messaging the bot."
+		);
 		for (ServerDef def : defs) {
 			YatzyUser yu = new YatzyUser(def);
 			users.add(yu);
 		}
 		for (YatzyUser yu : users) {
 			int tries = 0;
+			String initialNick = yu.getBot().getName();
 			while (tries < 3 && !yu.getBot().isConnected()) {
-				String initialNick = yu.getBot().getName();
 				try {
 					System.out.println(
 						yu + ": attempting connection to " + yu.getServerDef().getServer() +
