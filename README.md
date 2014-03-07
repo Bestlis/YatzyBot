@@ -23,7 +23,7 @@ Usage:
 
 `java -jar yatzybot.jar [one or more of {nick@}[server] [channel1,channel2]]`. If running on a shell via SSH, it is recommended you use `nohup` to prevent SSH hangup from terminating the bot. Default nick is 'YatzyBot'.
 
-Example command line: "java -jar yatzybot.jar irc.yourserver.net #yatzy,#chatland pimppi@irc.myserver.fi #hissi,#kissa".
+Example command line: `java -jar yatzybot.jar irc.yourserver.net #yatzy,#chatland pimppi@irc.myserver.fi #hissi,#kissa`.
 
 License:
 
