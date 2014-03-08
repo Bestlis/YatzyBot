@@ -86,8 +86,10 @@ public class Yahtzee {
 		return which;
 	}
 
-	public synchronized boolean[] roll() throws YatzyException {
-		return roll(null);
+	public synchronized void rollAll() throws YatzyException {
+		for (int i = 0; i < dice.length; i++) {
+			dice[i].roll();
+		}
 	}
 	
 	public synchronized Map<Scoring, Integer> getRollScores() {
@@ -189,7 +191,7 @@ public class Yahtzee {
 			y.addPlayer(player1);
 			y.addPlayer(player2);
 			y.start();
-			y.getTurn().roll();
+			y.getTurn().rollAll();
 			y.getTurn().getDiceVals();
 		} catch (YatzyException te) {
 			te.printStackTrace();

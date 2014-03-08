@@ -6,6 +6,7 @@
 package org.overlord.yahtzee.bot;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.EnumMap;
 import java.util.Iterator;
@@ -33,7 +34,7 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
-	protected static final String VERSION = "0.84";
+	protected static final String VERSION = "0.85";
 	
 	protected final PircBotX bot;
 	protected final YatzyUser user;
@@ -47,7 +48,7 @@ public class YatzyBot {
 	
 	protected final Yahtzee y = new Yahtzee();
 
-	public static int[] convertIntegers(List<Integer> integers)
+	public static int[] convertIntegers(final List<Integer> integers)
 	{
 		int[] ret = new int[integers.size()];
 		Iterator<Integer> iterator = integers.iterator();
@@ -57,7 +58,7 @@ public class YatzyBot {
 		return ret;
 	}
 
-	public YatzyBot(YatzyUser user, final Channel channelObj) {
+	public YatzyBot(final YatzyUser user, final Channel channelObj) {
 		this.user       = user;
 		this.bot        = user.getBot();
 		this.server     = user.getServerDef().getServer();
@@ -223,7 +224,9 @@ public class YatzyBot {
 								final boolean[] rolled;
 								try {
 									if (follow == null) {
-										rolled = y.getTurn().roll();
+										y.getTurn().rollAll();
+										rolled = new boolean[5];
+										Arrays.fill(rolled, true);
 									} else {
 										String[] tokens = follow.split(" ");
 										int[] nums = new int[tokens.length];

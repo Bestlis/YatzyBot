@@ -33,14 +33,13 @@ public class Turn {
 		return diceVals;
 	}
 	
-	public boolean[] roll() throws YatzyException {
+	public void rollAll() throws YatzyException {
 		if (rolls == 3) throw new UsedAllRollsException("Used all 3 rolls.");
-		boolean[] rolled = y.roll();
+		y.rollAll();
 		diceVals = Yahtzee.dice2Vals(y.getDice(), null);
 		Arrays.sort(diceVals);
 		scores = y.getRollScores();
 		rolls++;
-		return rolled;
 	}
 	
 	public boolean[] rollNumbers(int[] which) throws YatzyException {
