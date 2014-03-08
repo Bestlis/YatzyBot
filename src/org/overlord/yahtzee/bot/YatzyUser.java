@@ -4,14 +4,18 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.security.SecureRandom;
 import java.util.ArrayList;
-import java.util.Random;
+import java.util.Arrays;
+import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
+import org.pircbotx.User;
 import org.pircbotx.exception.IrcException;
 import org.pircbotx.exception.NickAlreadyInUseException;
 import org.pircbotx.hooks.ListenerAdapter;
 import org.pircbotx.hooks.events.ConnectEvent;
+import org.pircbotx.hooks.events.JoinEvent;
+import org.pircbotx.hooks.events.PrivateMessageEvent;
 
 public class YatzyUser {
 	public static final String PASSWORD = new BigInteger(130, new SecureRandom()).toString(32);
@@ -50,6 +54,11 @@ public class YatzyUser {
 		public char getAdminMode() {
 			return adminMode;
 		}
+		
+		@Override
+		public String toString() {
+			return "ServerDef["+username+"@"+server+"~" + Arrays.toString(admins) + " "+ Arrays.toString(channels) +"]";
+		}
 	}
 	
 	protected static final ArrayList<YatzyUser> users = new ArrayList<YatzyUser>();
@@ -59,6 +68,10 @@ public class YatzyUser {
 	protected final PircBotX  bot;
 	protected final ListenerAdapter<PircBotX> listener;
 	protected volatile static String quitReason = null;
+	protected final CopyOnWriteArrayList<User> passAuthUsers = new CopyOnWriteArrayList<User>();
+	protected User user = null;
+	protected static volatile int _ID = 0;
+	protected final int id = _ID++;
 	
 	public YatzyUser(String username, String server, String channels[], String[] admins, char adminMode) {
 		this(new ServerDef(username, server, channels, admins, adminMode));
@@ -67,13 +80,70 @@ public class YatzyUser {
 	public YatzyUser(ServerDef def) {
 		this.serverDef = def;
 		this.bot = new PircBotX();
+		
+		bot.setAutoNickChange(true);
 		bot.setName(def.getUsername());
 		
 		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
 			public void onConnect(ConnectEvent<PircBotX> event) throws Exception {
+				user = getBot().getUserBot();
 				for (YatzyBot yb : bots) {
 					yb.start();
+				}
+			}
+			
+			@Override
+			public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) throws Exception {
+				synchronized (YatzyUser.this) {
+					int spc_i = event.getMessage().indexOf(' ');
+					
+					final String first  = spc_i == -1 ? event.getMessage() : event.getMessage().substring(0,spc_i);
+					final String follow = spc_i == -1 ? null : event.getMessage().substring(spc_i + 1).trim();
+					
+					if (first.equals("pass")) {
+						synchronized (passAuthUsers) {
+							if (!isAuthorised(event.getUser())) {
+								if (follow.equals(YatzyUser.PASSWORD)) {
+									passAuthUsers.add(event.getUser());
+									bot.sendMessage(
+										event.getUser(),
+										"You are now authorised with password and user credentials. " +
+										"This authorisation will remain while the bot is connected."
+									);
+									out("Authentication granted: " + event.getUser() + " (password auth)");
+								} else {
+									bot.sendMessage(
+										event.getUser(),
+										"Authorisation failed! Check your password. " +
+										"user: " + event.getUser().getNick() + ", " +
+										"identified: " + event.getUser().isIdentified()
+									);
+									out("Authentication failed: " + event.getUser() + " (password auth)");
+								}
+							} else {
+								bot.sendMessage(event.getUser(), "You are already identified :)");
+							}
+						}
+					} else if (first.equals("join")) {
+						if (!isAuthorised(event.getUser())) {
+							
+						}
+					} else if (first.equals("logout")) {
+						synchronized (passAuthUsers) {
+							if (!isAuthorised(event.getUser())) {
+								bot.sendMessage(event.getUser(), "You cannot logout if you are not logged in (note: users cannot log out of the nickserv ident list).");
+							} else {
+								boolean contained = passAuthUsers.remove(event.getUser());
+								if (!contained) {
+									bot.sendMessage(event.getUser(), "User was not in the password auth list (note: users cannot log out of the nickserv ident list).");
+								} else {
+									bot.sendMessage(event.getUser(), "Logged out.");
+									out(event.getUser() + " logged out (password auth)");
+								}
+							}
+						}
+					}
 				}
 			}
 		});		
@@ -84,8 +154,51 @@ public class YatzyUser {
 		}
 	}
 	
-	public YatzyUser(String nick, String server, String channel, String admin) {
+	public static void pmLogAllAdmins(String message, boolean err) {
+		for (YatzyUser yu : users) {
+			if (!yu.getBot().isConnected()) continue;
+			for (User u : yu.passAuthUsers) {
+				StringBuilder b = new StringBuilder();
+				if (err) {
+					b.append("~ ").append(YatzyBot.COLOUR).append("4,1").append(message);
+				} else {
+					b.append("~ ").append(message);
+				}
+				b.append(", to: " + u.getNick());
+				b.append(", identified: ").append(u.isIdentified());
+				yu.getBot().sendMessage(u, b.toString());
+			}
+			for (String u_str : yu.getServerDef().getAdmins()) {
+				User u = yu.getBot().getUser(u_str);
+				if (!u.isIdentified()) continue;
+				StringBuilder b = new StringBuilder();
+				if (err) {
+					b.append("~ ").append(YatzyBot.COLOUR).append("4,1").append(message);
+				} else {
+					b.append("~ ").append(message);
+				}
+				b.append(", to: " + u.getNick());
+				b.append(", identified: ").append(u.isIdentified());
+				yu.getBot().sendMessage(u, b.toString());
+			}
+		}
+	}
+	
+	public YatzyUser(String nick, String server, String channel, String admin)	{
 		this(nick, server, new String[] { channel }, new String[] { admin }, 'r');
+	}
+	
+	public boolean isAuthorised(User auser) {
+		synchronized (passAuthUsers) {
+			if (passAuthUsers.contains(auser)) return true;
+		}
+		String[] admins = serverDef.getAdmins();
+		for (String admin : admins) {
+			if (admin.equals(auser.getNick())) {
+				if (auser.isIdentified()) return true;
+			}
+		}
+		return false;
 	}
 	
 	public ServerDef getServerDef() {
@@ -98,7 +211,7 @@ public class YatzyUser {
 	}
 	
 	public synchronized void connect() throws NickAlreadyInUseException, IrcException, IOException {
-		System.out.println(this + ": start");
+		YatzyUser.out(this + ": start");
 		bot.connect(serverDef.getServer());
 	}
 	
@@ -169,52 +282,53 @@ public class YatzyUser {
 				}
 			}
 			defs.add(
-				new ServerDef(username, server, chansArr, admin == null ? null : new String[] { admin }, 'r')
+				new ServerDef(
+					username, server, chansArr,
+					admin == null ? null : new String[] { admin },
+					adminMode
+				)
 			);
 		}
+		System.out.println("Defs: " + defs.toString());
 		System.out.println(
-			"Password is '" + PASSWORD + "'. Use this if you specified no administrators when privately messaging the bot."
+			"Password is '" + PASSWORD + ". " +
+			"Use this if you specified no administrators when " +
+			"privately messaging the bot."
 		);
 		for (ServerDef def : defs) {
 			YatzyUser yu = new YatzyUser(def);
 			users.add(yu);
 		}
 		for (YatzyUser yu : users) {
-			int tries = 0;
 			String initialNick = yu.getBot().getName();
-			while (tries < 3 && !yu.getBot().isConnected()) {
+			while (!yu.getBot().isConnected()) {
 				try {
-					System.out.println(
-						yu + ": attempting connection to " + yu.getServerDef().getServer() +
-						": attempt #" + ++tries
+					YatzyUser.out(
+						yu + ": attempting connection to " + yu.getServerDef().getServer()
 					);
 					yu.connect();
 				} catch (NickAlreadyInUseException e) {
-					String newnick = initialNick + tries;
-					System.err.println(
+					YatzyUser.err(
 						"Couldn't connect to server: " +
 						yu.getServerDef().getServer() +
-						": nickname in use: " + yu.getBot().getName() +
-						" - changing nick to: " + newnick  + " ~ " +
-						e.getMessage()
+						": nickname in use: " + yu.getBot().getName()
 					);
-					yu.getBot().setName(newnick);
 					continue;
 				} catch (IOException e) {
-					System.err.println(
+					YatzyUser.err(
 						"Couldn't connect to server: " +
 						yu.getServerDef().getServer() + " ~ " +
 						e.getMessage()
 					);
-					System.err.println(e.toString());
+					YatzyUser.err(e.toString());
 					return;
 				} catch (IrcException e) {
-					System.err.println(
+					YatzyUser.err(
 						"Couldn't connect to server: " +
 						yu.getServerDef().getServer() + " ~ " +
 						e.getMessage()
 					);
-					System.err.println(e.toString());
+					YatzyUser.err(e.toString());
 					return;
 				}
 			}
@@ -235,6 +349,10 @@ public class YatzyUser {
 			}
 		}
 		
+		YatzyUser.out(
+			"Qutting: " + (quitReason != null ? quitReason : "Execution ended normally - no reason.")
+		);
+		
 		// dispose all apps
 		// this might cause problems because of thread-safety, probably not.
 		for (YatzyUser yu : users) {
@@ -243,7 +361,7 @@ public class YatzyUser {
 	}
 	
 	public synchronized void dispose(String reason) {
-		System.out.println(this + ": dispose: "+ reason);
+		YatzyUser.out(this + ": dispose: "+ reason);
 		bot.getListenerManager().removeListener(listener);
 		for (YatzyBot yb : bots) {
 			yb.dispose();
@@ -254,7 +372,7 @@ public class YatzyUser {
 	public static void quit(String reason) {
 		if (!running) throw new IllegalStateException("Already quitting!");
 		
-		System.out.println(YatzyUser.class + ": quit");
+		out(YatzyUser.class + ": quit");
 		
 		quitReason = reason;
 		
@@ -274,5 +392,21 @@ public class YatzyUser {
 			"#hissi,#kissa'. If unspecified, nick will be 'YatzyBot' by default. There " +
 			"must be no spaces between channels and comma delimiters."
 		);
+	}
+	
+	private static final Object lock = new Object();
+	
+	public static void out(String msg) {
+		synchronized (lock) {
+			System.out.println(msg);
+			pmLogAllAdmins(msg, false);				
+		}	
+	}
+	
+	public static void err(String msg) {
+		synchronized (lock) {
+			System.err.println(msg);
+			pmLogAllAdmins(msg, true);
+		}
 	}
 }

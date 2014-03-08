@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.ListIterator;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.CopyOnWriteArrayList;
 
 import org.overlord.yahtzee.Player;
 import org.overlord.yahtzee.RollNumberNotFoundException;
@@ -28,8 +27,10 @@ import org.pircbotx.Colors;
 import org.pircbotx.PircBotX;
 import org.pircbotx.User;
 import org.pircbotx.hooks.ListenerAdapter;
+import org.pircbotx.hooks.events.JoinEvent;
+import org.pircbotx.hooks.events.KickEvent;
 import org.pircbotx.hooks.events.MessageEvent;
-import org.pircbotx.hooks.events.PrivateMessageEvent;
+import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
 	protected static final String VERSION = "0.84";
@@ -40,7 +41,9 @@ public class YatzyBot {
 	protected final String channel;
 	protected final Channel channelObj;
 	protected final ListenerAdapter<PircBotX> listener;
-	protected final CopyOnWriteArrayList<User> passAuthUsers = new CopyOnWriteArrayList<User>();
+	
+	protected static volatile int _ID = 0;
+	protected final int id = _ID++;
 	
 	protected final Yahtzee y = new Yahtzee();
 
@@ -149,29 +152,43 @@ public class YatzyBot {
 		
 		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
-			public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) throws Exception {
-				synchronized (YatzyBot.this) {
-					int spc_i = event.getMessage().indexOf(' ');
-					
-					final String first  = spc_i == -1 ? event.getMessage() : event.getMessage().substring(0,spc_i);
-					final String follow = spc_i == -1 ? null : event.getMessage().substring(spc_i + 1).trim();
-					
-					if (first.equals("pass")) {
-						synchronized (passAuthUsers) {
-							if (!isAuthorised(event.getUser())) {
-								if (follow.equals(YatzyUser.PASSWORD)) {
-									passAuthUsers.add(event.getUser());
-									bot.sendMessage(event.getUser(), "You are now authorised with password and user credentials. This authorisation will remain while the bot is connected.");
-								} else {
-									bot.sendMessage(event.getUser(), "Authorisation failed! Check your password.");
-								}
-							} else {
-								bot.sendMessage(event.getUser(), "You are already identified :)");
-							}
-						}
-					} else if (first.equals("join")) {
-						
-					}
+			public void onPart(PartEvent<PircBotX> event) throws Exception {
+				if (bot.getUserBot().equals(event.getUser())) {
+					YatzyUser.out(
+						"[" + bot.getUserBot().getNick() + "@" +
+						bot.getServer() + ":" + bot.getPort() + " ~ " +
+						event.getChannel().getName() + "] " +
+						"Parted channel"
+					);
+				}
+			}
+			
+			@Override
+			public void onJoin(JoinEvent<PircBotX> event) throws Exception {
+				if (bot.getUserBot().equals(event.getUser())) {
+					showInitialHelpMsg();
+					YatzyUser.out(
+						"[" + bot.getUserBot().getNick() + "@" +
+						bot.getServer() + ":" + bot.getPort() + " ~ " +
+						event.getChannel().getName() + "] " +
+						"Joined channel"
+					);
+				}
+			}
+			
+			@Override
+			public void onKick(KickEvent<PircBotX> event) throws Exception {
+				if (bot.getUserBot().equals(event.getRecipient())) {
+					showInitialHelpMsg();
+					YatzyUser.out(
+						"[" + bot.getUserBot().getNick() + "@" +
+						bot.getServer() + ":" + bot.getPort() + " ~ " +
+						event.getChannel().getName() + "] " +
+						"Kicked from channel (by: " + event.getSource().getNick() +
+						", reason: \"" +
+						(event.getReason() == null ? "none" : event.getReason()) +
+						"\")"
+					);
 				}
 			}
 			
@@ -301,7 +318,8 @@ public class YatzyBot {
 											if (holdall_nummatch[i] == 0) {
 												bot.sendMessage(
 													channelObj,
-													"Hold- ll number not found in rolled dice: " + holdall_dienums.get(i)
+													"Hold all number not found in rolled dice: " +
+													holdall_dienums.get(i)
 												);
 												return;
 											}
@@ -500,19 +518,6 @@ public class YatzyBot {
 		});
 	}
 	
-	public boolean isAuthorised(User auser) {
-		synchronized (passAuthUsers) {
-			if (passAuthUsers.contains(auser)) return true;
-		}
-		String[] admins = user.getServerDef().getAdmins();
-		for (String admin : admins) {
-			if (admin.equals(auser.getNick())) {
-				if (auser.isIdentified()) return true;
-			}
-		}
-		return false;
-	}
-	
 	public String getChannel() {
 		return channel;
 	}
@@ -522,10 +527,9 @@ public class YatzyBot {
 	}
 	public void start() {
 		bot.joinChannel(channel);
-		showInitialHelpMsg();
 	}
 	
-	public synchronized void leave(String reason) {
+	public synchronized void part(String reason) {
 		bot.partChannel(channelObj, reason); // part channel
 		dispose(); // best to dispose after parting
 	}
