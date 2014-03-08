@@ -156,10 +156,10 @@ public class YatzyBot {
 			public void onPart(PartEvent<PircBotX> event) throws Exception {
 				if (bot.getUserBot().equals(event.getUser())) {
 					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" +
+						"[" + bot.getUserBot().getNick() + "@" + bot.getUserBot().getHostmask() + "@" +
 						bot.getServer() + ":" + bot.getPort() + " ~ " +
 						event.getChannel().getName() + "] " +
-						"Parted channel"
+						"Bot parted channel"
 					);
 				}
 			}
@@ -169,10 +169,10 @@ public class YatzyBot {
 				if (bot.getUserBot().equals(event.getUser())) {
 					showInitialHelpMsg();
 					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" +
+						"[" + bot.getUserBot().getNick() + "@" + bot.getUserBot().getHostmask() + "@" +
 						bot.getServer() + ":" + bot.getPort() + " ~ " +
 						event.getChannel().getName() + "] " +
-						"Joined channel"
+						"Bot joined channel"
 					);
 				}
 			}
@@ -182,10 +182,10 @@ public class YatzyBot {
 				if (bot.getUserBot().equals(event.getRecipient())) {
 					showInitialHelpMsg();
 					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" +
+						"[" + bot.getUserBot().getHostmask() + "@" +
 						bot.getServer() + ":" + bot.getPort() + " ~ " +
 						event.getChannel().getName() + "] " +
-						"Kicked from channel (by: " + event.getSource().getNick() +
+						"Bot kicked from channel (by: " + event.getSource().getNick() +
 						", reason: \"" +
 						(event.getReason() == null ? "none" : event.getReason()) +
 						"\")"
@@ -217,7 +217,8 @@ public class YatzyBot {
 								"YatzyBot " + VERSION + " by Overlord Industries " +
 								"(Chris Dennett / Dessimat0r / dessimat0r@gmail.com) " +
 								"and other contributors (none yet, add your name and " +
-								"e-mail here if you contribute)."
+								"e-mail here if you contribute). Running on PircBotX " +
+								PircBotX.VERSION + "."
 							);
 						} else if (first.equals(".roll") || first.equals(".r")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {

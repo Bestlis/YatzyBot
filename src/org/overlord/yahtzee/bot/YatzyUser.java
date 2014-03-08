@@ -95,51 +95,65 @@ public class YatzyUser {
 			@Override
 			public void onPrivateMessage(PrivateMessageEvent<PircBotX> event) throws Exception {
 				synchronized (YatzyUser.this) {
-					int spc_i = event.getMessage().indexOf(' ');
+					String trimmedMsg = event.getMessage().trim();
+					int spc_i = trimmedMsg.indexOf(' ');
 					
-					final String first  = spc_i == -1 ? event.getMessage() : event.getMessage().substring(0,spc_i);
-					final String follow = spc_i == -1 ? null : event.getMessage().substring(spc_i + 1).trim();
+					final String first  = spc_i == -1 ? trimmedMsg : trimmedMsg.substring(0,spc_i);
+					final String follow = spc_i == -1 ? null : trimmedMsg.substring(spc_i + 1).trim();
+					
+					System.out.println("first: '" + first + "'");
+					System.out.println("follow: '" + follow + "'");
 					
 					if (first.equals("pass")) {
-						synchronized (passAuthUsers) {
-							if (!isAuthorised(event.getUser())) {
-								if (follow.equals(YatzyUser.PASSWORD)) {
-									passAuthUsers.add(event.getUser());
-									bot.sendMessage(
-										event.getUser(),
-										"You are now authorised with password and user credentials. " +
-										"This authorisation will remain while the bot is connected."
-									);
-									out("Authentication granted: " + event.getUser() + " (password auth)");
-								} else {
-									bot.sendMessage(
-										event.getUser(),
-										"Authorisation failed! Check your password. " +
-										"user: " + event.getUser().getNick() + ", " +
-										"identified: " + event.getUser().isIdentified()
-									);
-									out("Authentication failed: " + event.getUser() + " (password auth)");
-								}
+						if (follow == null) {
+							boolean auth = isAuthorised(event.getUser());
+							event.respond(
+								"Syntax: pass <password>. Password is given in the console when the bot starts up. " +
+								(auth ? "Already authorised, no further action needed." : "User is not authorised at present.")
+							);
+							return;
+						}
+						if (!isAuthorised(event.getUser())) {
+							if (follow.equals(YatzyUser.PASSWORD)) {
+								passAuthUsers.add(event.getUser());
+								event.respond(
+									"You are now authorised with password and user credentials. " +
+									"This authorisation will remain while the bot is connected."
+								);
+								out(
+									"Authentication granted: " + event.getUser() + "@" +
+									event.getUser().getHostmask() + "@" + bot.getServer() +
+									"(password auth)"
+								);
 							} else {
-								bot.sendMessage(event.getUser(), "You are already identified :)");
+								event.respond(
+									"Authorisation failed! Check your password. " +
+									"user: " + event.getUser().getNick() +
+									" (password auth)"
+								);
+								out(
+									"Authentication failed: " + event.getUser() + "@" +
+									event.getUser().getHostmask() + "@" + bot.getServer() +
+									"(password auth)"
+								);
 							}
+						} else {
+							event.respond("You are already identified :)");
 						}
 					} else if (first.equals("join")) {
 						if (!isAuthorised(event.getUser())) {
 							
 						}
 					} else if (first.equals("logout")) {
-						synchronized (passAuthUsers) {
-							if (!isAuthorised(event.getUser())) {
-								bot.sendMessage(event.getUser(), "You cannot logout if you are not logged in (note: users cannot log out of the nickserv ident list).");
+						if (!isAuthorised(event.getUser())) {
+							event.respond("You cannot logout if you are not logged in (note: users cannot log out of the nickserv ident list).");
+						} else {
+							boolean contained = passAuthUsers.remove(event.getUser());
+							if (!contained) {
+								event.respond("User was not in the password auth list (note: users cannot log out of the nickserv ident list).");
 							} else {
-								boolean contained = passAuthUsers.remove(event.getUser());
-								if (!contained) {
-									bot.sendMessage(event.getUser(), "User was not in the password auth list (note: users cannot log out of the nickserv ident list).");
-								} else {
-									bot.sendMessage(event.getUser(), "Logged out.");
-									out(event.getUser() + " logged out (password auth)");
-								}
+								event.respond("Logged out.");
+								out(event.getUser() + " logged out (password auth)");
 							}
 						}
 					}
@@ -163,21 +177,17 @@ public class YatzyUser {
 				} else {
 					b.append("~ ").append(message);
 				}
-				b.append(", to: " + u.getNick());
-				b.append(", identified: ").append(u.isIdentified());
 				yu.getBot().sendMessage(u, b.toString());
 			}
 			for (String u_str : yu.getServerDef().getAdmins()) {
 				User u = yu.getBot().getUser(u_str);
-				if (!u.isIdentified()) continue;
+				if (!u.isVerified()) continue;
 				StringBuilder b = new StringBuilder();
 				if (err) {
 					b.append("~ ").append(YatzyBot.COLOUR).append("4,1").append(message);
 				} else {
 					b.append("~ ").append(message);
 				}
-				b.append(", to: " + u.getNick());
-				b.append(", identified: ").append(u.isIdentified());
 				yu.getBot().sendMessage(u, b.toString());
 			}
 		}
@@ -188,13 +198,11 @@ public class YatzyUser {
 	}
 	
 	public boolean isAuthorised(User auser) {
-		synchronized (passAuthUsers) {
-			if (passAuthUsers.contains(auser)) return true;
-		}
+		if (passAuthUsers.contains(auser)) return true;
 		String[] admins = serverDef.getAdmins();
 		for (String admin : admins) {
 			if (admin.equals(auser.getNick())) {
-				if (auser.isIdentified()) return true;
+				if (auser.isVerified()) return true;
 			}
 		}
 		return false;
