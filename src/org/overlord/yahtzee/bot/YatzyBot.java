@@ -200,14 +200,18 @@ public class YatzyBot {
 						return; // ignore
 					}
 					if (event.getChannel() != null) {
-						if (event.getMessage() == null || event.getMessage().isEmpty()) return;
+						if (event.getMessage() == null) return;
 						
 						boolean hasCmdPr = event.getMessage().charAt(0) == '.';
-						if (!hasCmdPr) return;
-						int spc_i = event.getMessage().indexOf(' ');
+						if (!hasCmdPr) return;						
 						
-						final String first  = spc_i == -1 ? event.getMessage() : event.getMessage().substring(0,spc_i);
-						final String follow = spc_i == -1 ? null : event.getMessage().substring(spc_i + 1);
+						String trimmedMsg = event.getMessage().trim();
+						if (trimmedMsg.isEmpty()) return;
+						
+						int spc_i = trimmedMsg.indexOf(' ');						
+						
+						final String first  = spc_i == -1 ? trimmedMsg : trimmedMsg.substring(0,spc_i);
+						final String follow = spc_i == -1 ? null : trimmedMsg.substring(spc_i + 1).trim();
 						
 						if (first.equals(".help")) {
 							showHelpMsg(event.getUser());
@@ -477,7 +481,7 @@ public class YatzyBot {
 								}
 							}
 						} else if (first.equals(".deleteplayer")) {
-							String[] tokens = event.getMessage().split(" ");
+							String[] tokens = trimmedMsg.split(" ");
 							if (tokens.length >= 2) {
 								String name = tokens[1];
 								try {
@@ -500,7 +504,7 @@ public class YatzyBot {
 							}
 						} else if (first.equals(".choose") || first.equals(".c")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
-								String[] tokens = event.getMessage().split(" ");
+								String[] tokens = trimmedMsg.split(" ");
 								String chosen = tokens[1];
 								Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(chosen.toLowerCase());
 								if (s == null) {
@@ -548,7 +552,10 @@ public class YatzyBot {
 	}
 	
 	public static final String INITIAL_HELP_TEXT =
-		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for further contributions (http://github.com/Dessimat0r/YatzyBot). Have fun! :)";
+		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! " +
+		"Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for " +
+		"further contributions (http://github.com/Dessimat0r/YatzyBot). " +
+		"Running on PircBotX " + PircBotX.VERSION + "." + " Have fun! :)";
 	;
 	
 	public static final String HELP_TEXT =

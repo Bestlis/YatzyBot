@@ -101,9 +101,6 @@ public class YatzyUser {
 					final String first  = spc_i == -1 ? trimmedMsg : trimmedMsg.substring(0,spc_i);
 					final String follow = spc_i == -1 ? null : trimmedMsg.substring(spc_i + 1).trim();
 					
-					System.out.println("first: '" + first + "'");
-					System.out.println("follow: '" + follow + "'");
-					
 					if (first.equals("pass")) {
 						if (follow == null) {
 							boolean auth = isAuthorised(event.getUser());
@@ -122,12 +119,13 @@ public class YatzyUser {
 								passAuthUsers.add(event.getUser());
 								event.respond(
 									"You are now authorised with password and user credentials. " +
-									"This authorisation will remain while the bot is connected."
+									"This authorisation will remain while the bot is connected " +
+									"and the bot is able to track any changes in your credentials."
 								);
 								out(
-									"Authentication granted: " + event.getUser() + "@" +
+									"Authentication granted: " + event.getUser().getNick() + "@" +
 									event.getUser().getHostmask() + "@" + bot.getServer() +
-									"(password auth)"
+									"~" + bot.getName() + " (password auth)"
 								);
 							} else {
 								event.respond(
@@ -138,7 +136,7 @@ public class YatzyUser {
 								out(
 									"Authentication failed: " + event.getUser() + "@" +
 									event.getUser().getHostmask() + "@" + bot.getServer() +
-									"(password auth)"
+									"~" + bot.getName() + " (password auth)"
 								);
 							}
 						} else {
@@ -302,7 +300,7 @@ public class YatzyUser {
 		}
 		System.out.println("Defs: " + defs.toString());
 		System.out.println(
-			"Password is '" + PASSWORD + ". " +
+			"Password is '" + PASSWORD + "'. " +
 			"Use this if you specified no administrators when " +
 			"privately messaging the bot."
 		);
