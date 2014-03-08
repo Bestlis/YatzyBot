@@ -108,8 +108,12 @@ public class YatzyUser {
 						if (follow == null) {
 							boolean auth = isAuthorised(event.getUser());
 							event.respond(
-								"Syntax: pass <password>. Password is given in the console when the bot starts up. " +
-								(auth ? "Already authorised, no further action needed." : "User is not authorised at present.")
+								"Syntax: pass <password>. Password is given in the " +
+								"console when the bot starts up. " +
+								(auth ?
+									"Already authorised, no further action needed." :
+									"User is not authorised at present."
+								)
 							);
 							return;
 						}
