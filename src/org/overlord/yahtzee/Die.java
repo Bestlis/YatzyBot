@@ -12,7 +12,7 @@ package org.overlord.yahtzee;
 //  between 1 and 6.
 //********************************************************************
 
-public class Die {
+public class Die implements Comparable<Die> {
 	public static final int MAX = 6; // maximum face value
 
 	private int faceValue; // current value showing on the die
@@ -57,5 +57,11 @@ public class Die {
 	public String toString() {
 		String result = Integer.toString(faceValue);
 		return result;
+	}
+
+	@Override
+	public int compareTo(Die o) {
+		if (o == null) throw new IllegalArgumentException("compareTo arg is null");
+		return Integer.compare(getFaceValue(), o.getFaceValue());
 	}
 }

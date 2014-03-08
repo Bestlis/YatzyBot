@@ -572,7 +572,10 @@ public class YatzyBot {
 	}
 	
 	public void showLeaveMsg(String message) {
-		bot.sendMessage(channelObj, "Thanks for playing with YatzyBot! :) (Leaving now! Reason: " + message + ")");
+		bot.sendMessage(
+			channelObj,
+			"Thanks for playing with YatzyBot! :) (Leaving now! Reason: " + message + ")"
+		);
 	}
 
 	public static final Comparator<Entry<Scoring, Integer>> dicevalcomp = new Comparator<Map.Entry<Scoring,Integer>>() {
@@ -663,11 +666,9 @@ public class YatzyBot {
 	}
 
 	public String diceToString(boolean[] rolled, boolean colours) {
-		if (y.getDice() == null)
-			return "null";
+		if (y.getDice() == null) return "null";
 		int iMax = y.getDice().length - 1;
-		if (iMax == -1)
-			return "[]";
+		if (iMax == -1)	return "[]";
 
 		StringBuilder b = new StringBuilder();
 		if (colours) {

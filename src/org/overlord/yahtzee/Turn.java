@@ -8,6 +8,9 @@ package org.overlord.yahtzee;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.overlord.yahtzee.bot.YatzyBot;
+import org.overlord.yahtzee.bot.YatzyUser;
+
 public class Turn {
 	protected Yahtzee y;
 	protected Player player;

@@ -68,28 +68,15 @@ public class Yahtzee {
 				dice[i].roll();
 			}
 		}
+		Arrays.sort(dice);
 		return toRoll;
 	}
-
-	public synchronized boolean[] roll(boolean[] which) throws YatzyException {
-		if (finished) throw new GameCompleteException("Game complete!");
-		
-		if (which == null) {
-			which = new boolean[dice.length];
-			Arrays.fill(which, true);
-		}
-		
-		for (int i = 0; i < dice.length; i++) {
-			if (which[i]) dice[i].roll();
-		}
-		
-		return which;
-	}
-
+	
 	public synchronized void rollAll() throws YatzyException {
 		for (int i = 0; i < dice.length; i++) {
 			dice[i].roll();
 		}
+		Arrays.sort(dice);
 	}
 	
 	public synchronized Map<Scoring, Integer> getRollScores() {
@@ -182,34 +169,13 @@ public class Yahtzee {
 	public boolean isStarted() {
 		return started;
 	}
-
-	public static void main(String[] args) {
-		try {
-			Yahtzee y = new Yahtzee();
-			Player player1 = new Player("Dessimat0r");
-			Player player2 = new Player("zenya");
-			y.addPlayer(player1);
-			y.addPlayer(player2);
-			y.start();
-			y.getTurn().rollAll();
-			y.getTurn().getDiceVals();
-		} catch (YatzyException te) {
-			te.printStackTrace();
-		}
-		/*
-		
-		Map<Scoring, Integer> scores = y.getRollScores();
-		System.out.println("Scores: " + scores.toString());
-		int[] reroll = new int[] { y.getDice()[2].getFaceValue(), y.getDice()[4].getFaceValue() };
-		y.rollNumbers(reroll);
-		System.out.println("re-rolled " + Arrays.toString(reroll) + ", dice: " + y.getDiceStr());
-		scores = y.getRollScores();
-		System.out.println("Scores: " + scores.toString());
-		*/
+	
+	public void addListener(YatzyListener listener) {
+		listeners.add(listener);
 	}
 	
-	public synchronized void addListener(YatzyListener listener) {
-		listeners.add(listener);
+	public void removeListener(YatzyListener listener) {
+		listeners.remove(listener);
 	}
 
 	synchronized void turnDone(Turn turn) {
