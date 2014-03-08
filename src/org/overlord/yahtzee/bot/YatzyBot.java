@@ -182,7 +182,8 @@ public class YatzyBot {
 				if (bot.getUserBot().equals(event.getRecipient())) {
 					showInitialHelpMsg();
 					YatzyUser.out(
-						"[" + bot.getUserBot().getHostmask() + "@" +
+						"[" + bot.getUserBot().getNick() + "@" +
+						bot.getUserBot().getHostmask() + "@" +
 						bot.getServer() + ":" + bot.getPort() + " ~ " +
 						event.getChannel().getName() + "] " +
 						"Bot kicked from channel (by: " + event.getSource().getNick() +

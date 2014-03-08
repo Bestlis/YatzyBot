@@ -418,4 +418,21 @@ public class YatzyUser {
 			pmLogAllAdmins(msg, true);
 		}
 	}
+	
+    public static boolean isAlphanumeric(String str) {
+    	if (str == null || str.isEmpty())
+    		throw new IllegalArgumentException("Passed null or empty string to isAlphanumeric(..)");
+        for (int i=0; i<str.length(); i++) {
+            char c = str.charAt(i);
+            if (!Character.isDigit(c) && !Character.isLetter(c))
+                return false;
+        }
+        return true;
+    }
+	
+    public static boolean isValidNick(String str) {
+    	if (str == null || str.isEmpty()) return false;
+        if (!Character.isLetter(str.charAt(0))) return false;
+        return isAlphanumeric(str);
+    }
 }
