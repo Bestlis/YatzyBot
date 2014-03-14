@@ -1,36 +1,35 @@
-package org.overlord.yahtzee.config;
+package org.overlord.yahtzee.bot;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Map.Entry;
-import java.util.concurrent.ConcurrentHashMap;
 
 import org.ini4j.Ini;
 import org.ini4j.InvalidFileFormatException;
 import org.ini4j.Profile.Section;
-import org.overlord.yahtzee.InvalidNickException;
-import org.overlord.yahtzee.bot.YatzyUser;
 
 public final class ConfigManager {
 	public static final String CONFIG_PATH = "config.ini";
 	
 	private static final ConfigManager INSTANCE = new ConfigManager();
 	
-	protected final Map<String,ModifiableServerDef> servers = new ConcurrentHashMap<String,ModifiableServerDef>();
-	protected final Map<String,String> passwords = new ConcurrentHashMap<String,String>();
+	protected boolean attemptedRead = false;
+	protected boolean firstRun = false;
 	
 	public static ConfigManager getInstance() {
 		return INSTANCE;
 	}	
 	
 	private ConfigManager() {
-	}
-	
-	public void clear() {
-		passwords.clear();
 	}
 	
 	String[] usernamePasswords2Arr(Map<String, String> userPasswds) {
@@ -41,13 +40,30 @@ public final class ConfigManager {
 		return arr.toArray(new String[0]);
 	}
 	
-	public void read() throws IOException {
+	static String readFile(Path path, Charset encoding) throws IOException {
+		byte[] encoded = Files.readAllBytes(path);
+		return encoding.decode(ByteBuffer.wrap(encoded)).toString().trim();
+	}
+	
+	public boolean read() throws IOException {
+		attemptedRead = true;
 		YatzyUser.out(
 			"Reading config from disk. This will erase in-memory values."
 		);
+		Path inpath = Paths.get(CONFIG_PATH);
+		File infile = inpath.toFile();
+		if (!infile.exists() || readFile(inpath, StandardCharsets.UTF_8).isEmpty()) {
+			YatzyUser.out(
+				"Config file '" + infile.getAbsolutePath() + "' does not " +
+				"exist or is empty. Treating as a first-run."
+			);
+			firstRun = true;
+			return false;
+		}
 		final Ini ini = new Ini();
 		try {
-			ini.load(new File(CONFIG_PATH));
+			ini.load(infile);
+			firstRun = false;
 		} catch (InvalidFileFormatException e) {
 			throw new IllegalStateException(e);
 		}
@@ -55,7 +71,7 @@ public final class ConfigManager {
 		if (s_general == null) {
 			s_general = ini.add("General");
 		}
-		Section s_servers = ini.get("General");
+		Section s_servers = ini.get("Servers");
 		if (s_servers == null) {
 			s_servers = ini.add("Servers");
 		}
@@ -63,6 +79,15 @@ public final class ConfigManager {
 			"Read config from disk. Previous in-memory values erased and state " +
 			"synched."
 		);
+		return true;
+	}
+	
+	public boolean isFirstRun() {
+		return firstRun;
+	}
+	
+	public boolean isAttemptedRead() {
+		return attemptedRead;
 	}
 	
 	public void write() throws IOException {
@@ -71,9 +96,17 @@ public final class ConfigManager {
 		);
 		final Ini ini = new Ini();
 		Section s_general = ini.add("General");
+		String upstr = convertUP2Str(YatzyUser.getAdminPasswords());
+		s_general.add("Admin_Passwords", upstr);
+		
 		Section s_servers = ini.add("Servers");
-		for (Entry<String,ModifiableServerDef> server : servers.entrySet()) {
-			Section s_serverdef = s_servers.addChild(server.getKey());
+		for (Entry<String,YatzyUser> yue : YatzyUser.getUsers().entrySet()) {
+			Section s_server = s_servers.addChild(yue.getKey());
+			YatzyUser yu = yue.getValue();
+			s_server.add("Server", yu.getServer());
+			s_server.add("Nick", yu.getNick());
+			String upstr2 = convertUP2Str(yu.getPasswords());
+			s_server.add("Passwords", upstr2);
 		}
 		try {
 			ini.store(new File(CONFIG_PATH));
@@ -81,21 +114,6 @@ public final class ConfigManager {
 			throw new IllegalStateException(e);
 		}
 		YatzyUser.out("Wrote config to disk.");
-	}
-	
-	public boolean removeUserPass(String username) {
-		return passwords.remove(username) != null;
-	}
-	
-	public boolean addUserPass(String username, String password) {
-		if (!YatzyUser.isAlphanumeric(username) || !YatzyUser.isAlphanumeric(password)) {
-			throw new InvalidNickException("Either username or password not alphanumerical!");
-		}
-		return passwords.put(username, password) != null;
-	}
-	
-	public String getPassword(String username) {
-		return passwords.get(username);
 	}
 	
 	public String convertUP2Str(Map<String, String> up) {

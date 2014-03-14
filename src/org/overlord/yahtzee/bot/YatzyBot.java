@@ -36,17 +36,19 @@ import org.pircbotx.hooks.events.PartEvent;
 public class YatzyBot {
 	protected static final String VERSION = "0.85";
 	
-	protected final PircBotX bot;
 	protected final YatzyUser user;
 	protected final String server;
 	protected final String channel;
 	protected final Channel channelObj;
-	protected final ListenerAdapter<PircBotX> listener;
+	
+	protected boolean activated = true;
+	protected boolean started   = false;
 	
 	protected static volatile int _ID = 0;
 	protected final int id = _ID++;
 	
-	protected final Yahtzee y = new Yahtzee();
+	protected Yahtzee y = new Yahtzee();
+	protected ListenerAdapter<PircBotX> listener;
 
 	public static int[] convertIntegers(final List<Integer> integers)
 	{
@@ -58,13 +60,30 @@ public class YatzyBot {
 		return ret;
 	}
 
-	public YatzyBot(final YatzyUser user, final Channel channelObj) {
+	public YatzyBot(final YatzyUser user, final Channel channelObj, boolean activated) {
 		this.user       = user;
-		this.bot        = user.getBot();
-		this.server     = user.getServerDef().getServer();
+		this.server     = user.getServer();
 		this.channelObj = channelObj;
 		this.channel    = channelObj.getName();
+		this.activated  = activated;
 		
+		if (activated) activate();
+		else deactivate();
+	}
+	
+	public String getChannel() {
+		return channel;
+	}
+	
+	public Channel getChannelObj() {
+		return channelObj;
+	}
+	
+	public void start() {
+		if (started) return;
+		if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated user.");
+		
+		y = new Yahtzee();
 		y.addListener(new YatzyListener() {
 			@Override
 			public void onTurn(Turn t) {
@@ -82,7 +101,7 @@ public class YatzyBot {
 						chosen.put(entry.getKey(), entry.getValue());
 					}
 				}
-				bot.sendMessage(
+				getBot().sendMessage(
 					channelObj,
 					t.getPlayer().getName() + ", it is your turn. Totals: " +
 					getTotalsStr(chosen, false, false) + ", Score: " +
@@ -94,7 +113,7 @@ public class YatzyBot {
 
 			@Override
 			public void onStart(Yahtzee y) {
-				bot.sendMessage(channelObj, "The game has started!");
+				getBot().sendMessage(channelObj, "The game has started!");
 			}
 
 			@Override
@@ -110,7 +129,7 @@ public class YatzyBot {
 					}
 				}
 
-				bot.sendMessage(
+				getBot().sendMessage(
 					channelObj,
 					"Turn completed. Totals: " +
 					getTotalsStr(chosen, false, false) +
@@ -121,12 +140,12 @@ public class YatzyBot {
 
 			@Override
 			public void onAddPlayer(Player p) {
-				bot.sendMessage(channelObj, "Player added: " + p.getName());
+				getBot().sendMessage(channelObj, "Player added: " + p.getName());
 			}
 
 			@Override
 			public void onReset(Yahtzee y) {
-				bot.sendMessage(channelObj, "Game reset! Please add players!");
+				getBot().sendMessage(channelObj, "Game reset! Please add players!");
 			}
 
 			@Override
@@ -138,7 +157,7 @@ public class YatzyBot {
 					sb.append(p.getName()).append(": ").append(p.getTotalScore());
 					first = false;
 				}
-				bot.sendMessage(
+				getBot().sendMessage(
 					channelObj,
 					"Game complete! Final scores: " + sb.toString() + ". " +
 					"Please use .reset to play again!"
@@ -147,45 +166,30 @@ public class YatzyBot {
 
 			@Override
 			public void onRemovePlayer(Player p) {
-				bot.sendMessage(channelObj, "Player removed: " + p.getName());
+				getBot().sendMessage(channelObj, "Player removed: " + p.getName());
 			}
 		});
 		
-		bot.getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
+		getBot().getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
 			public void onPart(PartEvent<PircBotX> event) throws Exception {
-				if (bot.getUserBot().equals(event.getUser())) {
-					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" + bot.getUserBot().getHostmask() + "@" +
-						bot.getServer() + ":" + bot.getPort() + " ~ " +
-						event.getChannel().getName() + "] " +
-						"Bot parted channel"
-					);
+				if (getBot().getUserBot().equals(event.getUser())) {
+					_out("Bot parted channel");
 				}
 			}
 			
 			@Override
 			public void onJoin(JoinEvent<PircBotX> event) throws Exception {
-				if (bot.getUserBot().equals(event.getUser())) {
+				if (getBot().getUserBot().equals(event.getUser())) {
 					showInitialHelpMsg();
-					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" + bot.getUserBot().getHostmask() + "@" +
-						bot.getServer() + ":" + bot.getPort() + " ~ " +
-						event.getChannel().getName() + "] " +
-						"Bot joined channel"
-					);
+					_out("Bot joined channel");
 				}
 			}
 			
 			@Override
 			public void onKick(KickEvent<PircBotX> event) throws Exception {
-				if (bot.getUserBot().equals(event.getRecipient())) {
-					showInitialHelpMsg();
-					YatzyUser.out(
-						"[" + bot.getUserBot().getNick() + "@" +
-						bot.getUserBot().getHostmask() + "@" +
-						bot.getServer() + ":" + bot.getPort() + " ~ " +
-						event.getChannel().getName() + "] " +
+				if (getBot().getUserBot().equals(event.getRecipient())) {
+					_out(
 						"Bot kicked from channel (by: " + event.getSource().getNick() +
 						", reason: \"" +
 						(event.getReason() == null ? "none" : event.getReason()) +
@@ -217,7 +221,7 @@ public class YatzyBot {
 						if (first.equals(".help")) {
 							showHelpMsg(event.getUser());
 						} else if (first.equals(".credits")) {
-							bot.sendNotice(
+							getBot().sendNotice(
 								event.getUser(),
 								"YatzyBot " + VERSION + " by Overlord Industries " +
 								"(Chris Dennett / Dessimat0r / dessimat0r@gmail.com) " +
@@ -244,7 +248,7 @@ public class YatzyBot {
 										try {
 											rolled = y.getTurn().rollNumbers(nums);
 										} catch (RollNumberNotFoundException e) {
-											bot.sendMessage(
+											getBot().sendMessage(
 												event.getChannel(),
 												"Die face value not found for rolling: " +
 												e.getNumToRoll()
@@ -265,9 +269,9 @@ public class YatzyBot {
 										}
 									}
 		
-									bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+									getBot().sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
 								} catch (YatzyException e3) {
-									bot.sendMessage(channelObj, e3.getMessage());
+									getBot().sendMessage(channelObj, e3.getMessage());
 								}
 							}
 						} else if (first.equals(".hold") || first.equals(".h")) {
@@ -275,7 +279,7 @@ public class YatzyBot {
 								boolean failed = false;
 								try {
 									if (follow == null) {
-										bot.sendMessage(channelObj, "Must choose some dice to hold!");
+										getBot().sendMessage(channelObj, "Must choose some dice to hold!");
 										return;
 									}
 									String[] tokens = follow.split(" ");
@@ -284,25 +288,25 @@ public class YatzyBot {
 		
 									if (tokens[0].equals("all")) {
 										if (tokens.length == 1) {
-											bot.sendMessage(channelObj, "Must specify what die number(s) to hold!");
+											getBot().sendMessage(channelObj, "Must specify what die number(s) to hold!");
 											return;
 										}
 										for (int i = 1; i < tokens.length; i++) {
 											try {
 												int num = Integer.valueOf(tokens[i]);
 												if (num < 1 || num > 6) {
-													bot.sendMessage(channelObj, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
+													getBot().sendMessage(channelObj, "Found illegal number in die numbers (" + num + ") - must be inclusively between 1 and 6!");
 													return;
 												}
 												for (int dienum : holdall_dienums) {
 													if (dienum == num) {
-														bot.sendMessage(channelObj, "Duplicate number in die numbers (" + num + ")!");
+														getBot().sendMessage(channelObj, "Duplicate number in die numbers (" + num + ")!");
 														return;	        									
 													}
 												}
 												holdall_dienums.add(num);
 											} catch (NumberFormatException nfe) {
-												bot.sendMessage(channelObj, "Found invalid token in die numbers (" + tokens[i] + ")!");
+												getBot().sendMessage(channelObj, "Found invalid token in die numbers (" + tokens[i] + ")!");
 												return;
 											}
 										}
@@ -325,7 +329,7 @@ public class YatzyBot {
 										}
 										for (int i = 0; i < holdall_nummatch.length; i++) {
 											if (holdall_nummatch[i] == 0) {
-												bot.sendMessage(
+												getBot().sendMessage(
 													channelObj,
 													"Hold all number not found in rolled dice: " +
 													holdall_dienums.get(i)
@@ -365,7 +369,7 @@ public class YatzyBot {
 										}
 		
 										if (!holdnums.isEmpty()) {
-											bot.sendMessage(channelObj, "Hold nums not found: " + holdnums);
+											getBot().sendMessage(channelObj, "Hold nums not found: " + holdnums);
 											failed = true;
 										}
 									}
@@ -385,18 +389,18 @@ public class YatzyBot {
 												chosen.put(entry.getKey(), entry.getValue());
 											}
 										}
-										bot.sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
+										getBot().sendMessage(channelObj, "#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
 									};
 								} catch (YatzyException e3) {
-									bot.sendMessage(channelObj, e3.getMessage());
+									getBot().sendMessage(channelObj, e3.getMessage());
 								} catch (NumberFormatException e4) {
-									bot.sendMessage(channelObj, e4.getMessage());
+									getBot().sendMessage(channelObj, e4.getMessage());
 								}
 							}
 						} else if (first.equals(".check") || first.equals(".ch")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 								if (y.getTurn().getRolls() == 0) {
-									bot.sendMessage(channelObj, "Must do at least one roll before checking scoring.");
+									getBot().sendMessage(channelObj, "Must do at least one roll before checking scoring.");
 									return;
 								}
 								ArrayList<Scoring> specific = null;
@@ -406,7 +410,7 @@ public class YatzyBot {
 									for (int i = 0; i < tokens.length; i++) {
 										Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(tokens[i].toLowerCase());
 										if (s == null) {
-											bot.sendMessage(channelObj, "Couldn't find the scoring for " + tokens[i].toLowerCase() + ".");
+											getBot().sendMessage(channelObj, "Couldn't find the scoring for " + tokens[i].toLowerCase() + ".");
 											return;
 										}
 										specific.add(s);
@@ -418,7 +422,7 @@ public class YatzyBot {
 									for (Scoring s : specific) {
 										scoring.put(s, y.getRollScores().get(s));
 									}
-									bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(scoring, true, true));
+									getBot().sendMessage(channelObj, "Scoring: " + getTotalsStr(scoring, true, true));
 								} else {
 									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
 									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
@@ -431,7 +435,7 @@ public class YatzyBot {
 										}
 									}		        			
 		
-									bot.sendMessage(channelObj, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
+									getBot().sendMessage(channelObj, "Scoring: " + getTotalsStr(unchosen, true, true));		        					
 								}	
 							}
 						} else if (first.equals(".start")) {
@@ -446,10 +450,10 @@ public class YatzyBot {
 								try {
 									y.start();
 								} catch (YatzyException e) {
-									bot.sendMessage(channelObj, e.getMessage());
+									getBot().sendMessage(channelObj, e.getMessage());
 								}
 							} else {
-								bot.sendMessage(channelObj, "Cannot start game if not participating!");
+								getBot().sendMessage(channelObj, "Cannot start game if not participating!");
 							}
 						} else if (first.equals(".reset")) {
 							try {
@@ -467,18 +471,18 @@ public class YatzyBot {
 									if (found) {
 										y.reset();
 									} else {
-										bot.sendMessage(channelObj, "Cannot reset game if not participating, or game not finished!");
+										getBot().sendMessage(channelObj, "Cannot reset game if not participating, or game not finished!");
 									}
 								}
 							} catch (YatzyException e) {
-								bot.sendMessage(channelObj, e.getMessage());
+								getBot().sendMessage(channelObj, e.getMessage());
 							}
 						} else if (first.equals(".play")) {
 							if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
 								try {
 									y.addPlayer(new Player(event.getUser().getNick()));
 								} catch (YatzyException e) {
-									bot.sendMessage(channelObj, e.getMessage());
+									getBot().sendMessage(channelObj, e.getMessage());
 								}
 							}
 						} else if (first.equals(".deleteplayer")) {
@@ -497,10 +501,10 @@ public class YatzyBot {
 									if (found) {
 										y.removePlayer(name);
 									} else {
-										bot.sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
+										getBot().sendMessage(channelObj, "Cannot remove player if not participating, or finished!");
 									}
 								} catch (YatzyException e) {
-									bot.sendMessage(channelObj, e.getMessage());
+									getBot().sendMessage(channelObj, e.getMessage());
 								}
 							}
 						} else if (first.equals(".choose") || first.equals(".c")) {
@@ -509,14 +513,14 @@ public class YatzyBot {
 								String chosen = tokens[1];
 								Scoring s = Yahtzee.SCORING_ABBRV_MAP.get(chosen.toLowerCase());
 								if (s == null) {
-									bot.sendMessage(channelObj, "Not a valid scoring!");
+									getBot().sendMessage(channelObj, "Not a valid scoring!");
 								} else {
 									try {
 										y.getTurn().choose(s);
 									} catch (TurnException e) {
-										bot.sendMessage(channelObj, e.getMessage());
+										getBot().sendMessage(channelObj, e.getMessage());
 									} catch (YatzyException e3) {
-										bot.sendMessage(channelObj, e3.getMessage());
+										getBot().sendMessage(channelObj, e3.getMessage());
 									}
 								}	
 							}
@@ -524,32 +528,31 @@ public class YatzyBot {
 					}
 				}
 			}
-		});
-	}
-	
-	public String getChannel() {
-		return channel;
-	}
-	
-	public Channel getChannelObj() {
-		return channelObj;
-	}
-	public void start() {
-		bot.joinChannel(channel);
-	}
-	
-	public synchronized void part(String reason) {
-		bot.partChannel(channelObj, reason); // part channel
-		dispose(); // best to dispose after parting
+		});		
+		getBot().joinChannel(channel);
+		
+		started = true;
 	}
 	
 	// remember to remove from parent user lists
-	synchronized void dispose() {
-		bot.getListenerManager().removeListener(listener); // remove listener
+	public void stop() {
+		if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated getBot().");
+		started = false;
+		getBot().partChannel(channelObj);
+		getBot().getListenerManager().removeListener(listener);
+		y = null;
 	}
 	
 	public String getServer() {
 		return server;
+	}
+	
+	public boolean isActivated() {
+		return activated;
+	}
+	
+	public boolean isStarted() {
+		return started;
 	}
 	
 	public static final String INITIAL_HELP_TEXT =
@@ -567,21 +570,21 @@ public class YatzyBot {
 	public static final String[] HELP_TEXT_ARR = HELP_TEXT.split("(\\r?\\n?)\\{1,2\\}");
 	
 	public void showInitialHelpMsg() {
-		bot.sendMessage(channelObj, INITIAL_HELP_TEXT);
+		getBot().sendMessage(channelObj, INITIAL_HELP_TEXT);
 	}
 	
 	public void showHelpMsg(User user) {
 		if (user == null) {
 			for (String line : HELP_TEXT_ARR) {
-				bot.sendMessage(channelObj, line);
+				getBot().sendMessage(channelObj, line);
 			}
 			return;
 		}
-		bot.sendNotice(user, HELP_TEXT);
+		getBot().sendNotice(user, HELP_TEXT);
 	}
 	
 	public void showLeaveMsg(String message) {
-		bot.sendMessage(
+		getBot().sendMessage(
 			channelObj,
 			"Thanks for playing with YatzyBot! :) (Leaving now! Reason: " + message + ")"
 		);
@@ -707,4 +710,46 @@ public class YatzyBot {
 			b.append(", ");
 		}
 	}
+	
+	public PircBotX getBot() {
+		return user.getBot();
+	}
+	
+	void dispose() {
+		getBot().getListenerManager().removeListener(listener);
+	}
+	
+	public void activate() {
+		if (activated) return;
+		if (started) throw new IllegalArgumentException("Bot trying to active when started!");
+		this.activated = true;
+	}
+	
+	public void deactivate() {
+		if (!activated) return;
+		if (started) throw new IllegalArgumentException("Cannot deactivate a started bot!");
+		this.activated = false;
+	}
+	
+	public String getBotStr() {
+		return "YatzyBot[" + user.getStatusStr() + "]~" + id + "~" + user.getUserNickStr() + "@" + user.getUserServerStr() + user.getUserStr() + "~" + channel;
+	}
+	
+    public void _out(String msg) {
+    	_out(msg, null);
+    }
+    
+    public void _err(String msg) {
+    	_err(msg, null);
+    }
+	
+    public void _out(String msg, User origin) {
+    	System.out.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+    	YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, false);
+    }
+    
+    public void _err(String msg, User origin) {
+    	System.err.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+    	YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, true);
+    }
 }
