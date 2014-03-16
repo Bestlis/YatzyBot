@@ -72,6 +72,9 @@ public final class ConfigManager {
 		Section s_general = ini.get("General");
 		if (s_general != null) {
 			String admin_passwords = s_general.get("Admin_Passwords");
+			if (admin_passwords == null || (admin_passwords = admin_passwords.trim()).isEmpty()) {
+				throw new IllegalStateException("No admin passwords found in config file. There should be at least one.");
+			}
 			Map<String, String> ups = convertStr2UP(admin_passwords);
 			YatzyUser.clearAdminPasswords();
 			YatzyUser.addAdminPasswords(ups);
@@ -133,7 +136,7 @@ public final class ConfigManager {
 		try {
 			write();
 		} catch (IOException e) {
-			YatzyUser.pmLogAllAdmins("Couldn't write out config file: " + e.toString(), true);
+			YatzyUser.err("Couldn't write out config file: " + e.toString());
 		}
 	}
 	
@@ -184,8 +187,7 @@ public final class ConfigManager {
 		StringBuilder sb = new StringBuilder();
 		for (Entry<String, String> entry : up.entrySet()) {
 			if (!first) sb.append(',');
-			String e_str = entry.getKey().trim() + ":" + entry.getValue().trim();
-			sb.append(e_str);
+			sb.append(entry.getKey().trim()).append(':').append(entry.getValue().trim());
 			first = false;
 		}
 		return sb.toString();
