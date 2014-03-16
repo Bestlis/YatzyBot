@@ -487,7 +487,8 @@ public class YatzyUser {
 							boolean validated = false;
 							boolean adminValidated = false;
 							String chkpass = ADMIN_PASSWORDS.get(username);
-							if (chkpass == null || password.equals(chkpass)) {
+							System.out.println("chkpass: " + chkpass);
+							if (chkpass == null || !password.equals(chkpass)) {
 								 chkpass = um_passwords.get(username);
 								 if (chkpass == null || password.equals(chkpass)) { 
 								 } else {
@@ -519,7 +520,7 @@ public class YatzyUser {
 									" (Password auth)"
 								);
 								_out(
-									"Authentication failed: " + event.getUser() + " (Password auth)",
+									"Authentication failed: " + event.getUser().getNick() + " (Password auth)",
 									event.getUser()
 								);
 							}
