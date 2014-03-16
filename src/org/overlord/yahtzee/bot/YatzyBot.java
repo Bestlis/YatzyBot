@@ -39,7 +39,7 @@ public class YatzyBot {
 	protected final YatzyUser user;
 	protected final String server;
 	protected final String channel;
-	protected final Channel channelObj;
+	protected Channel channelObj = null;
 	
 	protected boolean activated = true;
 	protected boolean started   = false;
@@ -60,11 +60,10 @@ public class YatzyBot {
 		return ret;
 	}
 
-	public YatzyBot(final YatzyUser user, final Channel channelObj, boolean activated) {
+	public YatzyBot(final YatzyUser user, final String channel, boolean activated) {
 		this.user       = user;
 		this.server     = user.getServer();
-		this.channelObj = channelObj;
-		this.channel    = channelObj.getName();
+		this.channel    = channel;
 		this.activated  = activated;
 		
 		if (activated) activate();
@@ -82,6 +81,8 @@ public class YatzyBot {
 	public void start() {
 		if (started) return;
 		if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated user.");
+		
+		this.channelObj = getBot().getChannel(channel);
 		
 		y = new Yahtzee();
 		y.addListener(new YatzyListener() {
@@ -541,6 +542,7 @@ public class YatzyBot {
 		getBot().partChannel(channelObj);
 		getBot().getListenerManager().removeListener(listener);
 		y = null;
+		channelObj = null;
 	}
 	
 	public String getServer() {
@@ -732,7 +734,7 @@ public class YatzyBot {
 	}
 	
 	public String getBotStr() {
-		return "YatzyBot[" + user.getStatusStr() + "]~" + id + "~" + user.getUserNickStr() + "@" + user.getUserServerStr() + user.getUserStr() + "~" + channel;
+		return "YatzyBot[" + user.getStatusStr() + "]~" + id + "~" + user.getUserNickStr() + "@" + user.getUserServerStr() + "~" + channel;
 	}
 	
     public void _out(String msg) {

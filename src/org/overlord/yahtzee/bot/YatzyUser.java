@@ -46,14 +46,15 @@ public class YatzyUser {
 	protected final Map<String, String> passwords    = new HashMap<String, String>();
 	protected final Map<String, String> um_passwords = Collections.unmodifiableMap(passwords);
 	
-	protected final static Map<String, String> admin_passwords    = new HashMap<String, String>();
-	protected final static Map<String, String> um_admin_passwords = Collections.unmodifiableMap(admin_passwords);
+	protected final static Map<String, String> ADMIN_PASSWORDS    = new HashMap<String, String>();
+	protected final static Map<String, String> UM_ADMIN_PASSWORDS = Collections.unmodifiableMap(ADMIN_PASSWORDS);
 	
-	public YatzyUser(String id, String nick, String server, String[] channels, Map<String, String> passwords) {
+	public YatzyUser(String id, String nick, String server, String[] channels, Map<String, String> passwords, boolean activated) {
 		if (server == null) throw new IllegalArgumentException("Must specify a server.");
-		this.id     = id;
-		this.nick   = nick == null ? YatzyUser.DEFAULT_NICK : nick;
-		this.server = server;
+		this.id        = id;
+		this.nick      = nick == null ? YatzyUser.DEFAULT_NICK : nick;
+		this.server    = server;
+		this.activated = activated;
 		
 		if (passwords != null) {
 			this.passwords.putAll(passwords);
@@ -61,8 +62,7 @@ public class YatzyUser {
 		
 		if (channels != null) {
 			for (String channel : channels) {
-				Channel chanobj = bot.getChannel(channel);
-				bots.put(channel, new YatzyBot(this, chanobj, true));
+				bots.put(channel, new YatzyBot(this, channel, true));
 			}
 		}
 		
@@ -83,8 +83,12 @@ public class YatzyUser {
 	}
 	
 	public YatzyBot addChannel(String channel, boolean activated) {
-		YatzyBot yb = new YatzyBot(this, bot.getChannel(channel), activated);
+		if (channel == null || (channel = channel.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Channel cannot be null or empty in addChannel(..).");
+		}
+		YatzyBot yb = new YatzyBot(this, channel, activated);
 		bots.put(channel, yb);
+		ConfigManager.getInstance().writeWarn();
 		return yb;
 	}
 	
@@ -100,23 +104,33 @@ public class YatzyUser {
 		if (!YatzyUser.isAlphanumeric(username) || !YatzyUser.isAlphanumeric(password)) {
 			throw new InvalidNickException("Either username or password not alphanumerical!");
 		}
-		return passwords.put(username, password) != null;
+		boolean result = passwords.put(username, password) != null;
+		ConfigManager.getInstance().writeWarn();
+		return result;
 	}
 	
 	public static boolean removeAdminUserPass(String username) {
-		return admin_passwords.remove(username) != null;
+		boolean result = ADMIN_PASSWORDS.remove(username) != null;
+		ConfigManager.getInstance().writeWarn();
+		return result;
 	}
 	
 	public static boolean addAdminUserPass(String username, String password) {
 		if (!YatzyUser.isAlphanumeric(username) || !YatzyUser.isAlphanumeric(password)) {
 			throw new InvalidNickException("Either username or password not alphanumerical!");
 		}
-		return admin_passwords.put(username, password) != null;
+		boolean result = ADMIN_PASSWORDS.put(username, password) != null;
+		ConfigManager.getInstance().writeWarn();
+		return result;
 	}
 	
-	public static YatzyUser addServer(String id, String nick, String server, String[] channels, Map<String,String> passwords) {
-		YatzyUser user = new YatzyUser(id, nick, server, channels, passwords);
+	public static YatzyUser addServer(
+		String id, String nick, String server, String[] channels,
+		Map<String,String> passwords, boolean activated
+	) {
+		YatzyUser user = new YatzyUser(id, nick, server, channels, passwords, activated);
 		users.put(id, user);
+		ConfigManager.getInstance().writeWarn();
 		return user;
 	}
 	
@@ -130,6 +144,7 @@ public class YatzyUser {
 	
 	public static void pmLogAllAdmins(String message, boolean err) {
 		for (YatzyUser yu : users.values()) {
+			if (!yu.isStarted()) continue;
 			if (!yu.getBot().isConnected()) continue;
 			for (User u : yu.passAuthedUsers_user2un.keySet()) {
 				StringBuilder b = new StringBuilder();
@@ -250,7 +265,7 @@ public class YatzyUser {
 	}
 	
 	public static Map<String, String> getAdminPasswords() {
-		return um_admin_passwords;
+		return UM_ADMIN_PASSWORDS;
 	}
 	
 	public Map<String, String> getPasswords() {
@@ -286,7 +301,7 @@ public class YatzyUser {
 			addAdminUserPass(uname_str, pword_str);
 			System.out.println("Added global administrator: " + uname_str);
 			
-			YatzyUser yu = YatzyUser.addServer(id_str, DEFAULT_NICK, server_str, null, null);
+			YatzyUser yu = YatzyUser.addServer(id_str, DEFAULT_NICK, server_str, null, null, true);
 			System.out.println("Added initial server: " + id_str + ":" + yu.getNick() + "@" + server_str);
 		}
 		for (YatzyUser yu : users.values()) {
@@ -360,7 +375,7 @@ public class YatzyUser {
 	public static void out(String msg) {
 		synchronized (lock) {
 			System.out.println(msg);
-			pmLogAllAdmins(msg, false);				
+			pmLogAllAdmins(msg, false);
 		}	
 	}
 	
@@ -472,7 +487,7 @@ public class YatzyUser {
 							
 							boolean validated = false;
 							boolean adminValidated = false;
-							String chkpass = admin_passwords.get(username);
+							String chkpass = ADMIN_PASSWORDS.get(username);
 							if (chkpass == null || password.equals(chkpass)) {
 								 chkpass = um_passwords.get(username);
 								 if (chkpass == null || password.equals(chkpass)) { 
@@ -490,6 +505,7 @@ public class YatzyUser {
 									"You are now authorised with password and user credentials. " +
 									"This authorisation will remain while the bot is connected " +
 									"and the bot is able to track any changes in your credentials. " +
+									"(Password auth) " +
 									(adminValidated ? "(Admin validated)" : "(Local validated)")
 								);
 								_out(
@@ -501,10 +517,10 @@ public class YatzyUser {
 								event.respond(
 									"Authorisation failed! Check your password. " +
 									"user: " + event.getUser().getNick() +
-									" (password auth)"
+									" (Password auth)"
 								);
 								_out(
-									"Authentication failed: " + event.getUser() + " (password auth)",
+									"Authentication failed: " + event.getUser() + " (Password auth)",
 									event.getUser()
 								);
 							}
@@ -578,6 +594,14 @@ public class YatzyUser {
     	bot.disconnect();
     	listener = null;
     	started = false;
+    }
+    
+    public static void clearAdminPasswords() {
+    	ADMIN_PASSWORDS.clear();
+    }
+    
+    public static void addAdminPasswords(Map<String, String> passwords) {
+    	ADMIN_PASSWORDS.putAll(passwords);
     }
     
     public void _out(String msg) {
