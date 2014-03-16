@@ -174,37 +174,38 @@ public class YatzyBot {
 		getBot().getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
 			public void onPart(PartEvent<PircBotX> event) throws Exception {
-				if (getBot().getUserBot().equals(event.getUser())) {
-					_out("Bot parted channel");
-				}
+				if (!getBot().getUserBot().equals(event.getUser())) return;
+				if (channelObj == null) return;
+				if (!event.getChannel().equals(channelObj)) return;
+				_out("Bot parted channel");
 			}
 			
 			@Override
 			public void onJoin(JoinEvent<PircBotX> event) throws Exception {
-				if (getBot().getUserBot().equals(event.getUser())) {
-					showInitialHelpMsg();
-					_out("Bot joined channel");
-				}
+				if (!getBot().getUserBot().equals(event.getUser())) return;
+				if (channelObj == null) return;
+				if (!event.getChannel().equals(channelObj)) return;
+				showInitialHelpMsg();
+				_out("Bot joined channel " + event.getChannel().getName() + ".");
 			}
 			
 			@Override
 			public void onKick(KickEvent<PircBotX> event) throws Exception {
-				if (getBot().getUserBot().equals(event.getRecipient())) {
-					_out(
-						"Bot kicked from channel (by: " + event.getSource().getNick() +
-						", reason: \"" +
-						(event.getReason() == null ? "none" : event.getReason()) +
-						"\")"
-					);
-				}
+				if (!getBot().getUserBot().equals(event.getRecipient())) return;
+				if (channelObj == null) return;
+				if (!event.getChannel().equals(channelObj)) return;				
+				_out(
+					"Bot kicked from channel by: " + event.getSource().getNick() +
+					" (reason: \"" +
+					(event.getReason() == null ? "none" : event.getReason()) +
+					"\")."
+				);
 			}
 			
 			@Override
 			public void onMessage(MessageEvent<PircBotX> event) {
 				synchronized (YatzyBot.this) {
-					if (!event.getChannel().equals(channelObj)) {
-						return; // ignore
-					}
+					if (!event.getChannel().equals(channelObj)) return; // ignore
 					if (event.getChannel() != null) {
 						if (event.getMessage() == null) return;
 						
