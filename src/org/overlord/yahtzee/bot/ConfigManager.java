@@ -97,17 +97,22 @@ public final class ConfigManager {
 					throw new ParsingException("Server host not found in server section!");
 				}
 				boolean serverActive = true;
-				if (serverActive_s != null && serverActive_s.trim().equals("false")) {
-					serverActive = false;
+				if (serverActive_s != null) {
+					if (serverActive_s.trim().equals("false")) {
+						serverActive = false;
+					}
 				}
 				
 				Map<String,String> serverPasswords = convertStr2UP(serverPasswords_s);
 				
 				String[] serverChannels = null;
-				if (serverChannels_s != null && !(serverPasswords_s = serverPasswords_s.trim()).isEmpty()) {
-					serverChannels = serverChannels_s.split(",");
-					for (int i = 0; i < serverChannels.length; i++) {
-						serverChannels[i] = serverChannels[i].trim();
+				if (serverChannels_s != null) {
+					serverChannels_s = serverChannels_s.trim();
+					if (!serverChannels_s.isEmpty()) {
+						serverChannels = serverChannels_s.split(",");
+						for (int i = 0; i < serverChannels.length; i++) {
+							serverChannels[i] = serverChannels[i].trim();
+						}
 					}
 				}
 				YatzyUser.addServer(
