@@ -8,7 +8,6 @@ import java.util.HashMap;
 import java.util.Map;
 
 import org.overlord.yahtzee.InvalidNickException;
-import org.pircbotx.Channel;
 import org.pircbotx.PircBotX;
 import org.pircbotx.User;
 import org.pircbotx.exception.IrcException;
