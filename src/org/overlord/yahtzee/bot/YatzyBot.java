@@ -173,14 +173,6 @@ public class YatzyBot {
 		
 		getBot().getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
-			public void onPart(PartEvent<PircBotX> event) throws Exception {
-				if (!getBot().getUserBot().equals(event.getUser())) return;
-				if (channelObj == null) return;
-				if (!event.getChannel().equals(channelObj)) return;
-				_out("Bot parted channel");
-			}
-			
-			@Override
 			public void onJoin(JoinEvent<PircBotX> event) throws Exception {
 				if (!getBot().getUserBot().equals(event.getUser())) return;
 				if (channelObj == null) return;
@@ -200,6 +192,13 @@ public class YatzyBot {
 					(event.getReason() == null ? "none" : event.getReason()) +
 					"\")."
 				);
+			}
+			
+			@Override
+			public void onPart(PartEvent<PircBotX> event) throws Exception {
+				if (!getBot().getUserBot().equals(event.getUser())) return;
+				if (!event.getChannel().equals(channelObj)) return;
+				_out("Bot parted channel: " + event.getChannel().getName());
 			}
 			
 			@Override
@@ -543,7 +542,7 @@ public class YatzyBot {
 		getBot().partChannel(channelObj);
 		getBot().getListenerManager().removeListener(listener);
 		y = null;
-		channelObj = null;
+		//channelObj = null;
 	}
 	
 	public String getServer() {
@@ -599,6 +598,11 @@ public class YatzyBot {
 			return o2.getValue().compareTo(o1.getValue());
 		}
 	};
+	
+	public void onPart() {
+		_out("Bot parted channel: " + channelObj.getName());
+		channelObj = null;
+	}
 
 	public static final char COLOUR = '\u0003';
 

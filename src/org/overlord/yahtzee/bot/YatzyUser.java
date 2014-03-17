@@ -85,9 +85,11 @@ public class YatzyUser {
 		if (channel == null || (channel = channel.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Channel cannot be null or empty in addChannel(..).");
 		}
+		_out("Added channel: " + channel);
 		YatzyBot yb = new YatzyBot(this, channel, activated);
 		bots.put(channel, yb);
 		ConfigManager.getInstance().writeWarn();
+		if (yb.isActivated()) yb.start();
 		return yb;
 	}
 	
@@ -365,10 +367,6 @@ public class YatzyUser {
 		}
 	}
 	
-	public void deleteChannel(String channel) {
-		bots.remove(channel);
-	}
-	
 	private static final Object lock = new Object();
 	
 	public static void out(String msg) {
@@ -487,7 +485,6 @@ public class YatzyUser {
 							boolean validated = false;
 							boolean adminValidated = false;
 							String chkpass = ADMIN_PASSWORDS.get(username);
-							System.out.println("chkpass: " + chkpass);
 							if (chkpass == null || !password.equals(chkpass)) {
 								 chkpass = um_passwords.get(username);
 								 if (chkpass == null || password.equals(chkpass)) { 
@@ -555,27 +552,79 @@ public class YatzyUser {
 								event.respond("Couldn't find server for server ID '" + server_id + "'. Please check and try again.");
 								return;
 							}
-							yb = yu.addChannel(channel, true);
 							_out(
 								"Requested to join channel " + channel + " on " +
 								(server_id == null ? id : server_id) + ".", event.getUser()
 							);
+							yb = yu.addChannel(channel, true);
 						}
-						yb.start();
+					} else if (first.equals("leave")) {
+						if (!isAuthorised(event.getUser())) {
+							event.respond("Not authorised to perform this action. Try logging in first.");
+							return;
+						}
+						String[] split = follow.split(" ");
+						if (split.length < 1) {
+							event.respond("Syntax: leave {server id} <channel>. Specifying channel on its own will make the bot on this server leave that channel. (Wrong number of arguments.)");
+							return;
+						}
+						String server_id = null;
+						String channel   = null;
+						if (split.length >= 2) {
+							server_id = split[0].trim();
+							channel = split[1].trim();
+						} else if (split.length >= 1) {
+							channel = split[0].trim();			
+						}
+						YatzyBot yb = null;
+						if (server_id == null) {
+							yb = leaveChannel(channel);
+						} else {
+							// find server
+							YatzyUser yu = um_users.get(server_id);
+							if (yu == null) {
+								event.respond("Couldn't find server for server ID '" + server_id + "'. Please check and try again.");
+								return;
+							}
+							yb = yu.leaveChannel(channel);
+							_out(
+								"Requested to leave channel " + channel + " on " +
+								(server_id == null ? id : server_id) + ".", event.getUser()
+							);
+						}
 					} else if (first.equals("logout")) {
 						if (!isAuthorised(event.getUser())) {
 							event.respond("You cannot logout if you are not logged in (note: users cannot log out of the nickserv ident list).");
+							return;
+						}
+						String username = passAuthedUsers_user2un.remove(event.getUser());
+						if (username != null) {
+							User user = passAuthedUsers.remove(username);
+						}
+						if (username == null) {
+							event.respond("User was not in the password auth list.");
 						} else {
-							String username = passAuthedUsers_user2un.remove(event.getUser());
-							if (username != null) {
-								User user = passAuthedUsers.remove(username);
-							}
-							if (username == null) {
-								event.respond("User was not in the password auth list.");
+							event.respond("Logged out.");
+							_out(event.getUser() + " logged out (password auth)", event.getUser());
+						}
+					} else if (first.equals("channels")) {
+						if (follow != null && follow.isEmpty()) {
+							if (follow.equals("all")) {
+								_out("All channels: not handled yet");
+								return;
 							} else {
-								event.respond("Logged out.");
-								_out(event.getUser() + " logged out (password auth)", event.getUser());
+								// find server
+								YatzyUser yu = um_users.get(follow);
+								if (yu == null) {
+									event.respond("Server not found for server ID: " + follow);
+									return;
+								}
+								event.respond("Channels for ser	ver '" + follow + "': " + yu.getBots().keySet().toString());
+								return;
 							}
+						} else {
+							event.respond("Local server channels: " + bots.keySet().toString());
+							return;
 						}
 					}
 				}
@@ -588,7 +637,36 @@ public class YatzyUser {
 		connect();
     }
     
-    public void stop() {
+    public YatzyBot leaveChannel(String channel) throws ChannelNotExistsException {
+		if (channel == null || (channel = channel.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Channel cannot be null or empty in leaveChannel(..).");
+		} 	
+    	YatzyBot yu = bots.get(channel);
+   		if (yu == null) {
+   			throw new ChannelNotExistsException(
+   				"Channel '"  + channel + "' isn't known on " +
+   				"server '" + id + "'."
+   			);
+   		}
+   		yu.stop();
+   		yu.dispose();
+   		bots.remove(channel);
+   		boolean found = false;
+   		for (YatzyBot yb : bots.values()) {
+   			if (channel.equals(yb.getChannel())) {
+   				yb.onPart();
+   				found = true;
+   				break;
+   			}
+   		}
+   		ConfigManager.getInstance().writeWarn();
+   		if (!found) throw new IllegalStateException(
+   			"Couldn't find bot for part callback!"
+   		);
+		return yu;
+	}
+
+	public void stop() {
     	if (!running) return;
     	if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated user.");
     	bot.disconnect();
@@ -598,10 +676,12 @@ public class YatzyUser {
     
     public static void clearAdminPasswords() {
     	ADMIN_PASSWORDS.clear();
+    	ConfigManager.getInstance().writeWarn();
     }
     
     public static void addAdminPasswords(Map<String, String> passwords) {
     	ADMIN_PASSWORDS.putAll(passwords);
+    	ConfigManager.getInstance().writeWarn();
     }
     
     public void _out(String msg) {

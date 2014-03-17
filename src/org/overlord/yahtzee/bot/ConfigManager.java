@@ -20,6 +20,8 @@ import org.ini4j.Profile.Section;
 import sun.security.pkcs.ParsingException;
 
 public final class ConfigManager {
+	public static final boolean VERBOSE = false;
+	
 	public static final String CONFIG_PATH = "config.ini";
 	
 	private static final ConfigManager INSTANCE = new ConfigManager();
@@ -27,7 +29,7 @@ public final class ConfigManager {
 	protected boolean attemptedRead = false;
 	protected boolean firstRun = false;
 	
-	public static ConfigManager getInstance() {
+	public static final ConfigManager getInstance() {
 		return INSTANCE;
 	}	
 	
@@ -121,7 +123,6 @@ public final class ConfigManager {
 				);
 			}
 		}
-		
 		YatzyUser.out(
 			"Read config from disk. Previous in-memory values erased and state " +
 			"synched."
@@ -146,9 +147,11 @@ public final class ConfigManager {
 	}
 	
 	public void write() throws IOException {
-		YatzyUser.out(
-			"Writing config to disk. This will erase any previous stored config."
-		);
+		if (VERBOSE) {
+			YatzyUser.out(
+				"Writing config to disk. This will erase any previous stored config."
+			);
+		}
 		final Ini ini = new Ini();
 		Section s_general = ini.add("General");
 		String upstr = convertUP2Str(YatzyUser.getAdminPasswords());
@@ -183,7 +186,9 @@ public final class ConfigManager {
 		} catch (InvalidFileFormatException e) {
 			throw new IllegalStateException(e);
 		}
-		YatzyUser.out("Wrote config to disk.");
+		if (VERBOSE) {
+			YatzyUser.out("Wrote config to disk.");
+		}
 	}
 	
 	public String convertUP2Str(Map<String, String> up) {
@@ -209,8 +214,8 @@ public final class ConfigManager {
 				String password = up_arr[1].trim();		
 				if (username.isEmpty() || password.isEmpty()) {
 					throw new IllegalArgumentException(
-						"Bad username & password in General section (username: " +
-						username + ", password: " + password + ")."
+						"Bad username & password in General section (username: '" +
+						username + "', password: '" + password + "')."
 					);
 				}
 				ups.put(username, password);
