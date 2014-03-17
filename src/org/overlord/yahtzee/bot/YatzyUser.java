@@ -6,6 +6,7 @@ import java.security.SecureRandom;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Map.Entry;
 
 import org.overlord.yahtzee.InvalidNickException;
 import org.pircbotx.PircBotX;
@@ -85,9 +86,9 @@ public class YatzyUser {
 		if (channel == null || (channel = channel.trim()).isEmpty()) {
 			throw new IllegalArgumentException("Channel cannot be null or empty in addChannel(..).");
 		}
-		_out("Added channel: " + channel);
 		YatzyBot yb = new YatzyBot(this, channel, activated);
 		bots.put(channel, yb);
+		_out("Added channel with name: " + channel);
 		ConfigManager.getInstance().writeWarn();
 		if (yb.isActivated()) yb.start();
 		return yb;
@@ -131,6 +132,8 @@ public class YatzyUser {
 	) {
 		YatzyUser user = new YatzyUser(id, nick, server, channels, passwords, activated);
 		users.put(id, user);
+		out("Added server with id: " + id + ", host: " + server);
+		if (user.isActivated()) user.start();
 		ConfigManager.getInstance().writeWarn();
 		return user;
 	}
@@ -302,7 +305,7 @@ public class YatzyUser {
 			addAdminUserPass(uname_str, pword_str);
 			System.out.println("Added global administrator: " + uname_str);
 			
-			YatzyUser yu = YatzyUser.addServer(id_str, DEFAULT_NICK, server_str, null, null, true);
+			final YatzyUser yu = addServer(id_str, DEFAULT_NICK, server_str, null, null, true);
 			System.out.println("Added initial server: " + id_str + ":" + yu.getNick() + "@" + server_str);
 		}
 		for (YatzyUser yu : users.values()) {
@@ -619,13 +622,27 @@ public class YatzyUser {
 									event.respond("Server not found for server ID: " + follow);
 									return;
 								}
-								event.respond("Channels for ser	ver '" + follow + "': " + yu.getBots().keySet().toString());
+								event.respond("Channels for server '" + follow + "': " + yu.getBots().keySet().toString());
 								return;
 							}
 						} else {
 							event.respond("Local server channels: " + bots.keySet().toString());
 							return;
 						}
+					} else if (first.equals("servers")) {
+						StringBuilder sb = new StringBuilder();
+						boolean firstlp = true;
+						for (Entry<String, YatzyUser> user : um_users.entrySet()) {
+							if (!firstlp) {
+								sb.append(',');
+							}
+							sb.append(user.getKey());
+							sb.append(": ");
+							sb.append(user.getValue().getServer());
+							firstlp = false;
+						}
+						event.respond("Servers: [" + sb.toString() + "]");
+						return;
 					}
 				}
 			}
