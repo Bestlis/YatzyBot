@@ -129,7 +129,7 @@ public class YatzyUser {
 	public static YatzyUser addServer(
 		String id, String nick, String server, String[] channels,
 		Map<String,String> passwords, boolean activated
-	) {
+	) throws ServerIdAlreadyExistsException {
 		YatzyUser user = new YatzyUser(id, nick, server, channels, passwords, activated);
 		users.put(id, user);
 		out("Added server with id: " + id + ", host: " + server);
@@ -589,11 +589,11 @@ public class YatzyUser {
 								event.respond("Couldn't find server for server ID '" + server_id + "'. Please check and try again.");
 								return;
 							}
-							yb = yu.leaveChannel(channel);
 							_out(
 								"Requested to leave channel " + channel + " on " +
 								(server_id == null ? id : server_id) + ".", event.getUser()
 							);
+							yb = yu.leaveChannel(channel);
 						}
 					} else if (first.equals("logout")) {
 						if (!isAuthorised(event.getUser())) {
@@ -643,6 +643,58 @@ public class YatzyUser {
 						}
 						event.respond("Servers: [" + sb.toString() + "]");
 						return;
+					} else if (first.equals("addserver")) {
+						if (!isAuthorised(event.getUser())) {
+							event.respond("Not authorised to perform this action. Try logging in first.");
+							return;
+						}
+						String[] split = follow.split(" ");
+						if (split.length < 3) {
+							event.respond("Syntax: addserver <server_id> <host> <channels/none> <nick>. (Wrong number of arguments.)");
+							return;
+						}
+						String serverid   = split[0].trim();
+						String host       = split[1].trim();
+						String channels_s = split[2].trim();
+						String nick       = split[3].trim();
+						
+						if (!isAlphanumeric(serverid)) {
+							event.respond("Server ID must be alphanumeric.");
+						}
+						String[] channels = channels_s.split(",");
+						
+						_out(
+							"Requested to join server with id: " + serverid +
+							", host: " + host + ".",
+							event.getUser()
+						);
+						try {
+							YatzyUser yu = addServer(serverid, nick, host, channels, null, true);
+						} catch (ServerIdAlreadyExistsException e) {
+							event.respond("Server with id '" + serverid + "' already exists.");
+							return;
+						}
+					} else if (first.equals("remserver")) {
+						if (!isAuthorised(event.getUser())) {
+							event.respond("Not authorised to perform this action. Try logging in first.");
+							return;
+						}
+						String[] split = follow.split(" ");
+						if (split.length < 1) {
+							event.respond("Syntax: remserver {server id}. (Wrong number of arguments.)");
+							return;
+						}
+						String sid = follow;
+						_out(
+							"Requested to forget server " + sid + ".",
+							event.getUser()
+						);
+						try {
+							removeServer(sid);
+						} catch (ServerNotExistsException e) {
+							event.respond("Couldn't find server with ID: " + sid + ".");
+							return;							
+						}
 					}
 				}
 			}
@@ -678,10 +730,27 @@ public class YatzyUser {
    		}
    		ConfigManager.getInstance().writeWarn();
    		if (!found) throw new IllegalStateException(
-   			"Couldn't find bot for part callback!"
+   	   		"Warning: couldn't find channel bot for part callback!"
    		);
 		return yu;
 	}
+    
+    public YatzyUser removeServer(String serverid) throws ServerNotExistsException {
+		if (serverid == null || (serverid = serverid.trim()).isEmpty()) {
+			throw new IllegalArgumentException("Channel cannot be null or empty in removeServer(..).");
+		}
+		YatzyUser yu = users.get(serverid);
+		if (user == null) {
+			throw new ServerNotExistsException(
+				"Server with ID '" + serverid + "' isn't known."
+			);
+		}
+   		yu.stop();
+   		yu.dispose("Server removed by bot administrator.");
+   		users.remove(serverid);
+   		ConfigManager.getInstance().writeWarn();
+   		return yu;
+    }
 
 	public void stop() {
     	if (!running) return;
