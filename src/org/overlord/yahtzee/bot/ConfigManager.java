@@ -49,6 +49,11 @@ public final class ConfigManager {
 		return encoding.decode(ByteBuffer.wrap(encoded)).toString().trim();
 	}
 	
+	public boolean fileExists() {
+		Path inpath = Paths.get(CONFIG_PATH);
+		return inpath.toFile().exists();
+	}
+	
 	public boolean read() throws IOException {
 		attemptedRead = true;
 		YatzyUser.out(

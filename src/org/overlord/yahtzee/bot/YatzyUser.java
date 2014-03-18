@@ -282,10 +282,15 @@ public class YatzyUser {
 		// check if this is the first-run, query the ini file
 		ConfigManager cm = ConfigManager.getInstance();
 		boolean read = false;
-		try {
-			read = cm.read();
-		} catch (IOException e) {
-			System.err.println("Error while loading config: " + e.toString());
+		if (cm.fileExists()) {
+			System.out.println("Found config file. Will attempt to read. Passed initial setup args will be ignored.");
+			try {
+				read = cm.read();
+			} catch (IOException e) {
+				System.err.println("Error while loading config: " + e.toString());
+			}
+		} else {
+			System.out.println("No config file found. Will create config file and use passed arguments.");
 		}
 		if (!read) {
 			System.out.println("Looking for set-up arguments on command line...");
