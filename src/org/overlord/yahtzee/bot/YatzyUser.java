@@ -551,7 +551,12 @@ public class YatzyUser {
 						}
 						YatzyBot yb = null;
 						if (server_id == null) {
+							_out(
+								"Requested to join channel " + channel + " on " +
+								id + "."
+							);
 							yb = addChannel(channel, true);
+							return;
 						} else {
 							// find server
 							YatzyUser yu = um_users.get(server_id);
@@ -561,9 +566,10 @@ public class YatzyUser {
 							}
 							_out(
 								"Requested to join channel " + channel + " on " +
-								(server_id == null ? id : server_id) + ".", event.getUser()
+								server_id + ".", event.getUser()
 							);
 							yb = yu.addChannel(channel, true);
+							return;
 						}
 					} else if (first.equals("leave")) {
 						if (!isAuthorised(event.getUser())) {
@@ -585,7 +591,12 @@ public class YatzyUser {
 						}
 						YatzyBot yb = null;
 						if (server_id == null) {
+							_out(
+								"Requested to leave channel " + channel + " on " +
+								id + ".", event.getUser()
+							);
 							yb = leaveChannel(channel);
+							return;
 						} else {
 							// find server
 							YatzyUser yu = um_users.get(server_id);
@@ -595,9 +606,10 @@ public class YatzyUser {
 							}
 							_out(
 								"Requested to leave channel " + channel + " on " +
-								(server_id == null ? id : server_id) + ".", event.getUser()
+								server_id + ".", event.getUser()
 							);
 							yb = yu.leaveChannel(channel);
+							return;
 						}
 					} else if (first.equals("logout")) {
 						if (!isAuthorised(event.getUser())) {
@@ -610,9 +622,11 @@ public class YatzyUser {
 						}
 						if (username == null) {
 							event.respond("User was not in the password auth list.");
+							return;
 						} else {
 							event.respond("Logged out.");
 							_out(event.getUser() + " logged out (password auth)", event.getUser());
+							return;
 						}
 					} else if (first.equals("channels")) {
 						if (follow != null && !follow.isEmpty()) {
@@ -682,6 +696,7 @@ public class YatzyUser {
 							event.respond("Server with id '" + serverid + "' already exists.");
 							return;
 						}
+						return;
 					} else if (first.equals("remserver")) {
 						if (!isAuthorised(event.getUser())) {
 							event.respond("Not authorised to perform this action. Try logging in first.");
@@ -707,6 +722,7 @@ public class YatzyUser {
 							event.respond("Couldn't find server with ID: " + sid + ".");
 							return;							
 						}
+						return;
 					}
 				}
 			}
