@@ -455,14 +455,14 @@ public class YatzyUser {
 							return;
 						}
 						
-						if (follow == null) {
-							event.respond("Syntax: pass <username> <password>");
+						if (follow == null || follow.isEmpty()) {
+							event.respond("Syntax: pass <username> <password>. Not enough arguments.");
 							return;
 						}
 						String[] split = follow.split(" ");
 						if (split.length < 2) {
 							event.respond(
-								"Syntax: pass <username> <password>. Not enough arguments. "
+								"Syntax: pass <username> <password>. Not enough arguments."
 							);
 							return;
 						}
@@ -471,7 +471,7 @@ public class YatzyUser {
 						
 						if (username == null || password == null) {
 							event.respond(
-								"Syntax: pass <username> <password>. Not enough arguments. "
+								"Syntax: pass <username> <password>. Not enough arguments."
 							);
 							return;
 						}
@@ -530,6 +530,10 @@ public class YatzyUser {
 					} else if (first.equals("join")) {
 						if (!isAuthorised(event.getUser())) {
 							event.respond("Not authorised to perform this action. Try logging in first.");
+							return;
+						}
+						if (follow == null || follow.isEmpty()) {
+							event.respond("Syntax: join {server id} <channel>. Specifying channel on its own will make the bot on this server join that channel. (Wrong number of arguments.)");
 							return;
 						}
 						String[] split = follow.split(" ");
@@ -613,7 +617,7 @@ public class YatzyUser {
 					} else if (first.equals("channels")) {
 						if (follow != null && follow.isEmpty()) {
 							if (follow.equals("all")) {
-								_out("All channels: not handled yet");
+								event.respond("All channels: not handled yet, coming soon!");
 								return;
 							} else {
 								// find server
@@ -648,15 +652,19 @@ public class YatzyUser {
 							event.respond("Not authorised to perform this action. Try logging in first.");
 							return;
 						}
+						if (follow == null || follow.isEmpty()) {
+							event.respond("Syntax: addserver <server_id> <host> {channels/none} {nick}. (Wrong number of arguments.)");
+							return;
+						}
 						String[] split = follow.split(" ");
-						if (split.length < 3) {
-							event.respond("Syntax: addserver <server_id> <host> <channels/none> <nick>. (Wrong number of arguments.)");
+						if (split.length < 2) {
+							event.respond("Syntax: addserver <server_id> <host> {channels/none} {nick}. (Wrong number of arguments.)");
 							return;
 						}
 						String serverid   = split[0].trim();
 						String host       = split[1].trim();
-						String channels_s = split[2].trim();
-						String nick       = split[3].trim();
+						String channels_s = split.length < 3 || split[2].trim().equals("none") ? null : split[2].trim();
+						String nick       = split.length < 4 ? null : split[3].trim();
 						
 						if (!isAlphanumeric(serverid)) {
 							event.respond("Server ID must be alphanumeric.");
@@ -678,6 +686,10 @@ public class YatzyUser {
 						if (!isAuthorised(event.getUser())) {
 							event.respond("Not authorised to perform this action. Try logging in first.");
 							return;
+						}
+						if (follow == null || follow.isEmpty()) {
+							event.respond("Syntax: remserver {server id}. (Wrong number of arguments.)");
+							return;							
 						}
 						String[] split = follow.split(" ");
 						if (split.length < 1) {
