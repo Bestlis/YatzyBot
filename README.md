@@ -1,9 +1,9 @@
-YatzyBot 0.84 (07-03-2014)
+YatzyBot 0.86 (18-03-2014)
 ==========================
 
 A bot for playing the popular European Yatzy dice game in IRC (uses Java, PircBotX) with one or more players. Supports the following:
 
-* Multi-server, multi-channel support (BETA) (0.83+).
+* Full multi-server, multi-channel support (0.86).
 * Rolling all dies.
 * Rolling particular dies (just specify numbers on the dies, e.g., 5 6 1 1).
 * Holding particular dies (again, just specify the numbers, not the die indices).
@@ -15,15 +15,16 @@ A bot for playing the popular European Yatzy dice game in IRC (uses Java, PircBo
 
 Limitations at the moment include:
 
-* Cannot tell bot to join particular servers or channels from IRC if you are the owner of the bot — there are no commands to achieve this yet. Support will be coming soon! (~0.86+)
 * If everyone in a game quits, the bot does not realise yet and terminate the game - better to wait some minutes just to make sure they are really gone! (~0.87+)
 * Can't specify particular scorings with 'hardcoded dice' to hold, such as Small Straight or Large Straight (this would look like `.hold SS` to hold precisely the dice numbered 1, 2, 3, 4 and 5, ignoring the rest). (~0.88+)
 
 Usage:
 
-`java -jar yatzybot.jar [one or more of {nick@}[server] [channel1,channel2]]`. If running on a shell via SSH, it is recommended you use `nohup` to prevent SSH hangup from terminating the bot. Default nick is 'YatzyBot'.
+`java -jar yatzybot.jar` if not the first time running, otherwise: `java -jar yatzybot.jar <server id> <server host> <admin username> <admin password>` to allow the bot to join a server for further configuration. If running on a shell via SSH, it is recommended you use `nohup` to prevent SSH hangup from terminating the bot. Default nick is 'YatzyBot'.
 
-Example command line: `java -jar yatzybot.jar irc.yourserver.net #yatzy,#chatland pimppi@irc.myserver.fi #hissi,#kissa`.
+Following this, privately message it and send `pass <username> <password>` to authenticate, then get it to join a channel with `join {server id} <channel name>`. Alternatively, get it to join another server with `addserver <server id> <server host> {channel1,channel2...} {nick}`.
+
+Example initial command line: `java -jar yatzybot.jar YourServer irc.yourserver.net mankocity tokyorulezz`.
 
 Requirements:
 
