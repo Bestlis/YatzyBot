@@ -615,7 +615,7 @@ public class YatzyUser {
 							_out(event.getUser() + " logged out (password auth)", event.getUser());
 						}
 					} else if (first.equals("channels")) {
-						if (follow != null && follow.isEmpty()) {
+						if (follow != null && !follow.isEmpty()) {
 							if (follow.equals("all")) {
 								event.respond("All channels: not handled yet, coming soon!");
 								return;
