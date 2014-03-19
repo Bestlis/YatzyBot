@@ -5,15 +5,19 @@
 
 package org.overlord.yahtzee;
 
-public class RollNumberNotFoundException extends TurnException {
+public class DieNumberNotFoundException extends TurnException {
 	public final int numToRoll;
 	
-	public RollNumberNotFoundException(String message, int numToRoll) {
-		super(message);
-		this.numToRoll = numToRoll;
+	public DieNumberNotFoundException(int dieNum) {
+		this.numToRoll = dieNum;
 	}
 	
-	public int getNumToRoll() {
+	public DieNumberNotFoundException(String message, int dieNum) {
+		super(message);
+		this.numToRoll = dieNum;
+	}
+	
+	public int getDieNum() {
 		return numToRoll;
 	}
 }

@@ -40,7 +40,7 @@ public class Yahtzee {
 
 	}
 
-	public synchronized boolean[] rollNumbers(int[] which) throws YatzyException {
+	public synchronized boolean[] rollNumbers(int[] which) throws GameCompleteException, DieNumberNotFoundException {
 		if (finished) throw new GameCompleteException("Game complete!");
 		
 		boolean[] toRoll = new boolean[5];
@@ -56,7 +56,7 @@ public class Yahtzee {
 				}
 			}
 			if (!found) {
-				throw new RollNumberNotFoundException(
+				throw new DieNumberNotFoundException(
 					"Couldn't find die index of " + numToRoll +
 					" to roll again! (arr: " + Arrays.toString(which) +
 					", index: " + i + ")", numToRoll
@@ -72,7 +72,7 @@ public class Yahtzee {
 		return toRoll;
 	}
 	
-	public synchronized void rollAll() throws YatzyException {
+	public synchronized void rollAll() {
 		for (int i = 0; i < dice.length; i++) {
 			dice[i].roll();
 		}
@@ -119,7 +119,7 @@ public class Yahtzee {
 		}
 	}
 	
-	public synchronized void addPlayer(Player p) throws YatzyException {
+	public synchronized void addPlayer(Player p) throws GameStartedException {
 		if (started) throw new GameStartedException("Cannot add players after game start!");
 		
 		this.players.add(p);
@@ -138,9 +138,9 @@ public class Yahtzee {
 		return turn;
 	}
 	
-	public synchronized void start() throws YatzyException {
-		if (started) throw new GameStartedException("Cannot start a game that is already started! Reset first :))");
-		if (finished) throw new GameCompleteException("Cannot start a finished game! Reset first :))");
+	public synchronized void start() throws GameStartedException, GameCompleteException {
+		if (started) throw new GameStartedException();
+		if (finished) throw new GameCompleteException();
 		started = true;
 		for (YatzyListener l : listeners) {
 			l.onStart(this);
@@ -151,7 +151,7 @@ public class Yahtzee {
 		}
 	}
 	
-	public synchronized void reset() throws YatzyException {
+	public synchronized void reset() {
 		players.clear();
 		playerMap.clear();
 		turn = null;
@@ -222,7 +222,7 @@ public class Yahtzee {
 		return players;
 	}
 
-	public synchronized void removePlayer(String name) throws YatzyException {
+	public synchronized void removePlayer(String name) throws PlayerNotExistsException {
 		Player p = playerMap.get(name);
 		if (p == null) throw new PlayerNotExistsException("Player " + name + " doesn't exist!");
 		if (turn != null && turn.getPlayer() == p) {

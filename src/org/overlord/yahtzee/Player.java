@@ -32,7 +32,7 @@ public class Player {
 		return um_totals;
 	}
 
-	public void setScore(Scoring scoring, int value) throws YatzyException {
+	public void setScore(Scoring scoring, int value) throws ScoringAlreadyPlayedException {
 		if (totals.get(scoring) > -1) {
 			throw new ScoringAlreadyPlayedException("Player has already scored for " + scoring + " with " + totals.get(scoring));
 		}

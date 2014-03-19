@@ -6,6 +6,9 @@
 package org.overlord.yahtzee;
 
 public class GameStartedException extends YatzyException {
+	public GameStartedException() {
+	}
+	
 	public GameStartedException(String message) {
 		super(message);
 	}
