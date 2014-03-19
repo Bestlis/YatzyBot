@@ -377,17 +377,15 @@ public class YatzyUser {
 		}
 	}
 	
-	private static final Object lock = new Object();
-	
 	public static void out(String msg) {
-		synchronized (lock) {
+		synchronized (OUTPUT_LOCK) {
 			System.out.println(msg);
 			pmLogAllAdmins(msg, false);
 		}	
 	}
 	
 	public static void err(String msg) {
-		synchronized (lock) {
+		synchronized (OUTPUT_LOCK) {
 			System.err.println(msg);
 			pmLogAllAdmins(msg, true);
 		}
