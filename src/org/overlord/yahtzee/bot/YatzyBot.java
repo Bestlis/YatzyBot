@@ -758,7 +758,7 @@ public class YatzyBot {
 	}
 	
 	public String getBotStr() {
-		return "YatzyBot[" + user.getStatusStr() + "]~" + user.getUserNickStr() + "@" + user.getUserServerStr() + "~" + channel;
+		return "YatzyBot[" + user.getStatusStr() + "]~" + user.getId() + "~" + user.getUserNickStr() + "@" + user.getUserServerStr() + "~" + channel;
 	}
 	
     public void _out(String msg) {
