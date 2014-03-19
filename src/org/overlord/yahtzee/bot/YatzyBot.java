@@ -44,9 +44,6 @@ public class YatzyBot {
 	protected boolean activated = true;
 	protected boolean started   = false;
 	
-	protected static volatile int _ID = 0;
-	protected final int id = _ID++;
-	
 	protected Yahtzee y = new Yahtzee();
 	protected ListenerAdapter<PircBotX> listener;
 
@@ -739,24 +736,32 @@ public class YatzyBot {
 	}
 	
 	public String getBotStr() {
-		return "YatzyBot[" + user.getStatusStr() + "]~" + id + "~" + user.getUserNickStr() + "@" + user.getUserServerStr() + "~" + channel;
+		return "YatzyBot[" + user.getStatusStr() + "]~" + user.getUserNickStr() + "@" + user.getUserServerStr() + "~" + channel;
 	}
 	
     public void _out(String msg) {
-    	_out(msg, null);
+    	synchronized (YatzyUser.OUTPUT_LOCK) {
+    		_out(msg, null);
+    	}
     }
     
     public void _err(String msg) {
-    	_err(msg, null);
+    	synchronized (YatzyUser.OUTPUT_LOCK) {
+    		_err(msg, null);
+    	}
     }
 	
     public void _out(String msg, User origin) {
-    	System.out.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
-    	YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, false);
+    	synchronized (YatzyUser.OUTPUT_LOCK) {
+    		System.out.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+    		YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, false);
+    	}
     }
     
     public void _err(String msg, User origin) {
-    	System.err.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
-    	YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, true);
+    	synchronized (YatzyUser.OUTPUT_LOCK) {
+    		System.err.println(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+    		YatzyUser.pmLogAllAdmins(getBotStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, true);
+    	}
     }
 }

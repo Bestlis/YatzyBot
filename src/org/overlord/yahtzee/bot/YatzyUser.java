@@ -18,6 +18,8 @@ import org.pircbotx.hooks.events.ConnectEvent;
 import org.pircbotx.hooks.events.PrivateMessageEvent;
 
 public class YatzyUser {
+	public static final Object OUTPUT_LOCK = new Object();
+	
 	public static final String DEFAULT_NICK = "YatzyBot";
 	public static final String PASSWORD = new BigInteger(130, new SecureRandom()).toString(32);
 	
@@ -804,20 +806,28 @@ public class YatzyUser {
     }
     
     public void _out(String msg) {
-    	_out(msg, null);
+    	synchronized (OUTPUT_LOCK) {
+    		_out(msg, null);
+    	}
     }
     
     public void _err(String msg) {
-    	_err(msg, null);
+    	synchronized (OUTPUT_LOCK) {
+    		_err(msg, null);
+    	}
     }
     
     public void _out(String msg, User origin) {
-    	System.out.println(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
-    	pmLogAllAdmins(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, false);
+    	synchronized (OUTPUT_LOCK) {
+        	System.out.println(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+        	pmLogAllAdmins(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, false);			
+		}
     }
     
     public void _err(String msg, User origin) {
-    	System.err.println(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
-    	pmLogAllAdmins(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, true);
+    	synchronized (OUTPUT_LOCK) {
+	    	System.err.println(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg);
+	    	pmLogAllAdmins(getUserStr() + (origin == null ? "" : "[" + origin.getNick() + "]") + ": " + msg, true);
+    	}
     }
 }
