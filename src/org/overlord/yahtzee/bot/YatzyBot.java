@@ -136,7 +136,7 @@ public class YatzyBot {
 					"Turn completed. Totals: " +
 					getTotalsStr(chosen, false, false) +
 					", Score: " + y.getTurn().getPlayer().getTotalScore() +
-					", Turns remaining: " + (unchosen.size() - 1)
+					", Turns remaining: " + unchosen.size()
 				);
 			}
 
