@@ -38,7 +38,7 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
-	protected static final String VERSION = "0.861";
+	protected static final String VERSION = "0.862";
 	
 	protected final YatzyUser user;
 	protected final String server;
