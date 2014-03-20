@@ -601,7 +601,9 @@ public class YatzyBot {
 			}
 			return;
 		}
-		getBot().sendNotice(user, HELP_TEXT);
+		for (String line : HELP_TEXT_ARR) {
+			getBot().sendNotice(user, line);
+		}
 	}
 	
 	public void showLeaveMsg(String message) {
