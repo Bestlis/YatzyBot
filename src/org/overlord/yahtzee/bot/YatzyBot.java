@@ -55,7 +55,7 @@ public class YatzyBot {
 	protected boolean activated = true;
 	protected boolean started   = false;
 	
-	protected Yahtzee y = new Yahtzee();
+	protected Yahtzee y;
 	protected ListenerAdapter<PircBotX> listener;
 
 	public static int[] convertIntegers(final List<Integer> integers)
@@ -107,95 +107,6 @@ public class YatzyBot {
 		if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated user.");
 		
 		this.channelObj = getBot().getChannel(channel);
-		
-		y = new Yahtzee();
-		y.addListener(new YatzyListener() {
-			@Override
-			public void onTurn(Turn t) {
-				Map<Scoring, Integer> unchosen =
-					new EnumMap<Scoring, Integer>(Scoring.class)
-				;
-				Map<Scoring, Integer> chosen =
-					new EnumMap<Scoring, Integer>(Scoring.class)
-				;
-
-				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
-					if (entry.getValue() == -1) {
-						unchosen.put(entry.getKey(), entry.getValue());
-					} else {
-						chosen.put(entry.getKey(), entry.getValue());
-					}
-				}
-				getBot().sendMessage(
-					channelObj,
-					t.getPlayer().getName() + ", it is your turn. Totals: " +
-					getTotalsStr(chosen, false, false) + ", Score: " +
-					y.getTurn().getPlayer().getTotalScore() +
-					", Turns remaining after this turn: " +
-					(unchosen.size() - 1)
-				);
-			}
-
-			@Override
-			public void onStart(Yahtzee y) {
-				getBot().sendMessage(channelObj, "The game has started!");
-			}
-
-			@Override
-			public void onTurnComplete(Turn t) {
-				Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
-				Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-
-				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
-					if (entry.getValue() == -1) {
-						unchosen.put(entry.getKey(), entry.getValue());
-					} else {
-						chosen.put(entry.getKey(), entry.getValue());
-					}
-				}
-
-				getBot().sendMessage(
-					channelObj,
-					"Turn completed. Totals: " +
-					getTotalsStr(chosen, false, false) +
-					", Score: " + y.getTurn().getPlayer().getTotalScore() +
-					", Turns remaining: " + unchosen.size()
-				);
-			}
-
-			@Override
-			public void onAddPlayer(Player p) {
-				getBot().sendMessage(channelObj, "Player added: " + p.getName());
-			}
-
-			@Override
-			public void onReset(Yahtzee y) {
-				getBot().sendMessage(channelObj, "Game reset! Please add players!");
-			}
-
-			@Override
-			public void onGameComplete(Yahtzee y) {
-				StringBuilder sb = new StringBuilder();
-				boolean first = true;
-				for (Player p : y.getPlayers()) {
-					if (!first) { sb.append(", "); }
-					sb.append(p.getName()).append(": ").append(p.getTotalScore());
-					first = false;
-				}
-				getBot().sendMessage(
-					channelObj,
-					fixPrefix(
-						"Game complete! Final scores: " + sb.toString() + ". " +
-						"Please use %prefix%reset to play again!"
-					)
-				);
-			}
-
-			@Override
-			public void onRemovePlayer(Player p) {
-				getBot().sendMessage(channelObj, "Player removed: " + p.getName());
-			}
-		});
 		
 		getBot().getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
@@ -496,25 +407,118 @@ public class YatzyBot {
 								return;
 							}
 						} else if (first.equals(prefix + "reset")) {
-							if (!y.isStarted() || y.isFinished()) {
-								y.reset();
-							} else if (y.isStarted()) {
-								// check players
-								boolean found = false;
-								for (Player p : y.getPlayers()) {
-									if (event.getUser().getNick().equals(p.getName())) {
-										found = true;
-										break;
+							if (y != null) {
+								if (y.isStarted() && !y.isFinished()) {
+									// check players
+									boolean found = false;
+									for (Player p : y.getPlayers()) {
+										if (event.getUser().getNick().equals(p.getName())) {
+											found = true;
+											break;
+										}
+									}
+									if (!found) {
+										event.respond(
+											"Game started and not finished, and not participating in game. " +
+											"If the game is stuck, contact an admin and " +
+											"ask them to reset it."
+										);
+										return;
 									}
 								}
-								if (found) {
-									y.reset();
-									return;
-								} else {
-									event.respond("Cannot reset game if not participating, or game not finished.");
-									return;
-								}
+								y.dispose();
 							}
+							y = new Yahtzee();
+							y.addListener(new YatzyListener() {
+								@Override
+								public void onTurn(Turn t) {
+									Map<Scoring, Integer> unchosen =
+										new EnumMap<Scoring, Integer>(Scoring.class)
+									;
+									Map<Scoring, Integer> chosen =
+										new EnumMap<Scoring, Integer>(Scoring.class)
+									;
+
+									for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+										if (entry.getValue() == -1) {
+											unchosen.put(entry.getKey(), entry.getValue());
+										} else {
+											chosen.put(entry.getKey(), entry.getValue());
+										}
+									}
+									getBot().sendMessage(
+										channelObj,
+										t.getPlayer().getName() + ", it is your turn. Totals: " +
+										getTotalsStr(chosen, false, false) + ", Score: " +
+										y.getTurn().getPlayer().getTotalScore() +
+										", Turns remaining after this turn: " +
+										(unchosen.size() - 1)
+									);
+								}
+
+								@Override
+								public void onStart(Yahtzee y) {
+									getBot().sendMessage(channelObj, "The game has started!");
+								}
+
+								@Override
+								public void onTurnComplete(Turn t) {
+									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+
+									for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+										if (entry.getValue() == -1) {
+											unchosen.put(entry.getKey(), entry.getValue());
+										} else {
+											chosen.put(entry.getKey(), entry.getValue());
+										}
+									}
+
+									getBot().sendMessage(
+										channelObj,
+										"Turn completed. Totals: " +
+										getTotalsStr(chosen, false, false) +
+										", Score: " + y.getTurn().getPlayer().getTotalScore() +
+										", Turns remaining: " + unchosen.size()
+									);
+								}
+
+								@Override
+								public void onAddPlayer(Player p) {
+									getBot().sendMessage(channelObj, "Player added: " + p.getName());
+								}
+
+								@Override
+								public void onReset(Yahtzee y) {
+									getBot().sendMessage(channelObj, "Game reset! Please add players!");
+								}
+
+								@Override
+								public void onGameComplete(Yahtzee y) {
+									StringBuilder sb = new StringBuilder();
+									boolean first = true;
+									for (Player p : y.getPlayers()) {
+										if (!first) { sb.append(", "); }
+										sb.append(p.getName()).append(": ").append(p.getTotalScore());
+										first = false;
+									}
+									getBot().sendMessage(
+										channelObj,
+										fixPrefix(
+											"Game complete! Final scores: " + sb.toString() + ". " +
+											"Please use %prefix%reset to play again!"
+										)
+									);
+								}
+
+								@Override
+								public void onRemovePlayer(Player p) {
+									getBot().sendMessage(channelObj, "Player removed: " + p.getName());
+								}
+							});
+							event.respond(
+								"Game reset! Please add players :)"
+							);
 						} else if (first.equals(prefix + "play")) {
 							if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
 								try {
@@ -850,6 +854,10 @@ public class YatzyBot {
     		"Couldn't find variable: '" + variable + "'."
     	);
     }
+    
+    public Yahtzee getYatzy() {
+		return y;
+	}
 	
     public void _out(String msg, User origin) {
     	synchronized (YatzyUser.OUTPUT_LOCK) {

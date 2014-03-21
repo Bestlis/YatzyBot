@@ -252,4 +252,9 @@ public class Yahtzee {
 		double perc = Math.log(ofMax+1)/Math.log(5);
 		return perc;
 	}
+
+	public void dispose() {
+		// TODO Auto-generated method stub
+		
+	}
 }
