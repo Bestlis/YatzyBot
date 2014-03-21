@@ -38,11 +38,14 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
-	protected static final String VERSION = "0.863";
+	protected static final String VERSION        = "0.863";
+	public    static final char   DEFAULT_PREFIX = '.';
 	
 	protected final YatzyUser user;
-	protected final String server;
-	protected final String channel;
+	protected final String    server;
+	protected final String    channel;
+	
+	protected char    prefix     = DEFAULT_PREFIX;
 	protected Channel channelObj = null;
 	
 	protected boolean activated = true;
@@ -67,8 +70,19 @@ public class YatzyBot {
 		this.channel    = channel;
 		this.activated  = activated;
 		
+		updateLocalText();
+		
 		if (activated) activate();
 		else deactivate();
+	}
+	
+	public char getPrefix() {
+		return prefix;
+	}
+	
+	public void setPrefix(char prefix) {
+		this.prefix = prefix;
+		updateLocalText();
 	}
 	
 	public String getChannel() {
@@ -220,9 +234,9 @@ public class YatzyBot {
 						final String first  = spc_i == -1 ? trimmedMsg : trimmedMsg.substring(0,spc_i);
 						final String follow = spc_i == -1 ? null : trimmedMsg.substring(spc_i + 1).trim();
 						
-						if (first.equals(".help")) {
+						if (first.equals(prefix + "help")) {
 							showHelpMsg(event.getUser());
-						} else if (first.equals(".credits")) {
+						} else if (first.equals(prefix + "credits")) {
 							getBot().sendNotice(
 								event.getUser(),
 								"YatzyBot " + VERSION + " by Overlord Industries " +
@@ -231,7 +245,7 @@ public class YatzyBot {
 								"e-mail here if you contribute). Running on PircBotX " +
 								PircBotX.VERSION + "."
 							);
-						} else if (first.equals(".roll") || first.equals(".r")) {
+						} else if (first.equals(prefix + "roll") || first.equals(prefix + "r")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 								final boolean[] rolled;
 								try {
@@ -277,7 +291,7 @@ public class YatzyBot {
 									return;									
 								}
 							}
-						} else if (first.equals(".hold") || first.equals(".h")) {
+						} else if (first.equals(prefix + "hold") || first.equals(prefix + "h")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 								try {
 									if (follow == null) {
@@ -407,7 +421,7 @@ public class YatzyBot {
 									return;
 								}
 							}
-						} else if (first.equals(".check") || first.equals(".ch")) {
+						} else if (first.equals(prefix + "check") || first.equals(prefix + "ch")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 								if (y.getTurn().getRolls() == 0) {
 									event.respond("Must do at least one roll before checking scoring.");
@@ -448,7 +462,7 @@ public class YatzyBot {
 									return;
 								}	
 							}
-						} else if (first.equals(".start")) {
+						} else if (first.equals(prefix + "start")) {
 							boolean found = false;
 							for (Player p : y.getPlayers()) {
 								if (event.getUser().getNick().equals(p.getName())) {
@@ -470,7 +484,7 @@ public class YatzyBot {
 								event.respond("Cannot start game if not participating!");
 								return;
 							}
-						} else if (first.equals(".reset")) {
+						} else if (first.equals(prefix + "reset")) {
 							if (!y.isStarted() || y.isFinished()) {
 								y.reset();
 							} else if (y.isStarted()) {
@@ -490,7 +504,7 @@ public class YatzyBot {
 									return;
 								}
 							}
-						} else if (first.equals(".play")) {
+						} else if (first.equals(prefix + "play")) {
 							if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
 								try {
 									y.addPlayer(new Player(event.getUser().getNick()));
@@ -500,7 +514,7 @@ public class YatzyBot {
 									return;
 								}
 							}
-						} else if (first.equals(".deleteplayer")) {
+						} else if (first.equals(prefix + "deleteplayer")) {
 							String[] tokens = trimmedMsg.split(" ");
 							if (tokens.length >= 2) {
 								String name = tokens[1];
@@ -524,7 +538,7 @@ public class YatzyBot {
 									return;
 								}
 							}
-						} else if (first.equals(".choose") || first.equals(".c")) {
+						} else if (first.equals(prefix + "choose") || first.equals(prefix + "c")) {
 							if (y.getTurn() != null && event.getUser().getNick().equals(y.getTurn().getPlayer().getName())) {
 								String[] tokens = trimmedMsg.split(" ");
 								String chosen = tokens[1];
@@ -577,31 +591,50 @@ public class YatzyBot {
 	}
 	
 	public static final String INITIAL_HELP_TEXT =
-		"Hello, I am YatzyBot " + VERSION + " :) Please type .help for more info! " +
+		"Hello, I am YatzyBot " + VERSION + " :) Please type %prefix%help for more info! " +
 		"Initially coded by Chris Dennett (Dessimat0r), project source on GitHub for " +
 		"further contributions (http://github.com/Dessimat0r/YatzyBot). " +
 		"Running on PircBotX " + PircBotX.VERSION + "." + " Have fun! :)";
 	;
 	
-	public static final String HELP_TEXT =
-		"Hello, I am YatzyBot " + VERSION + " :) Valid game actions: .play (add yourself as player), .start (start game, do this once all players have joined), .reset (reset game),  .deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), .help (re-show help message)\n" +
-		"Valid rolling actions: .roll/.r {optional dice to reroll} (roll or re-roll particular dice), .hold/.h [all] {dice to hold} (hold particular dice when re-rolling), .choose/.c {SCORING_NAME} (choose scoring then finish your turn), .check/.ch (check scores)\n" +
+	public static final String[] HELP_TEXT_ARR = new String[] {
+		"Hello, I am YatzyBot " + VERSION + " :) Valid game actions: %prefix%play (add yourself as player), %prefix%start (start game, do this once all players have joined), %prefix%reset (reset game), %prefix%deleteplayer <player_name> (deletes a player if they stopped playing or left for some reason), %prefix%help (re-show help message)",
+		"Valid rolling actions: %prefix%roll/%prefix%r {optional dice to reroll} (roll or re-roll particular dice), %prefix%hold/%prefix%h [all] {dice to hold} (hold particular dice when re-rolling), %prefix%choose/%prefix%c {SCORING_NAME} (choose scoring then finish your turn), %prefix%check/%prefix%ch (check scores)",
 		"Please read gameplay information at http://en.wikipedia.org/wiki/Yatzy before playing!"
-	;
-	public static final String[] HELP_TEXT_ARR = HELP_TEXT.split("(\\r?\\n?)\\{1,2\\}");
+	};
+	
+	private String fixPrefix(String text) {
+		return text.replace("%prefix%", "" + prefix);
+	}
+	
+	private String[] fixPrefix(String[] text) {
+		String[] newtext = new String[text.length];
+		for (int i = 0; i < text.length; i++) {
+			newtext[i] = fixPrefix(text[i]);
+		}
+		return newtext;
+	}
+	
+	public String   initialHelpTextLocal;
+	public String[] helpTextArrLocal;
 	
 	public void showInitialHelpMsg() {
-		getBot().sendMessage(channelObj, INITIAL_HELP_TEXT);
+		getBot().sendMessage(channelObj, initialHelpTextLocal);
+	}
+	
+	public void updateLocalText() {
+		initialHelpTextLocal = fixPrefix(INITIAL_HELP_TEXT);
+		helpTextArrLocal     = fixPrefix(HELP_TEXT_ARR);
 	}
 	
 	public void showHelpMsg(User user) {
 		if (user == null) {
-			for (String line : HELP_TEXT_ARR) {
+			for (String line : helpTextArrLocal) {
 				getBot().sendMessage(channelObj, line);
 			}
 			return;
 		}
-		for (String line : HELP_TEXT_ARR) {
+		for (String line : helpTextArrLocal) {
 			getBot().sendNotice(user, line);
 		}
 	}
