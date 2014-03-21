@@ -38,8 +38,8 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
-	protected static final String   VERSION        = "0.863";
-	public    static final char     DEFAULT_PREFIX = '.';
+	protected static final String VERSION        = "0.87";
+	public    static final char   DEFAULT_PREFIX = '.';
 	
 	public static final String[] SET_STR_VARS = new String[] {
 		"prefix" 
