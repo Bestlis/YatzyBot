@@ -1,9 +1,9 @@
-YatzyBot 0.86 (18-03-2014)
+YatzyBot 0.87 (21-03-2014)
 ==========================
 
 A bot for playing the popular European Yatzy dice game in IRC (uses Java, PircBotX) with one or more players. Supports the following:
 
-* Full multi-server, multi-channel support (0.86).
+* Administrative functionality with username/password login, allowing joining different servers and channels from one application instance. (0.86+)
 * Rolling all dies.
 * Rolling particular dies (just specify numbers on the dies, e.g., 5 6 1 1).
 * Holding particular dies (again, just specify the numbers, not the die indices).
@@ -11,6 +11,7 @@ A bot for playing the popular European Yatzy dice game in IRC (uses Java, PircBo
 * Full score tracking, will choose the best dies to use automatically for the chosen scoring.
 * Viewing of all possible scoring, including scores.
 * Output after each roll shows which are good scorings, great scorings, and no scorings.
+* Different command prefixes for different channels (0.87+).
 * Games cannot be terminated by those not playing the game.
 
 Limitations at the moment include:
