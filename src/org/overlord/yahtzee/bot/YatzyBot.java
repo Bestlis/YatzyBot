@@ -87,6 +87,7 @@ public class YatzyBot {
 	public void setPrefix(char prefix) {
 		this.prefix = prefix;
 		updateLocalText();
+		ConfigManager.getInstance().writeWarn();
 	}
 	
 	public String getChannel() {
