@@ -151,17 +151,6 @@ public class Yahtzee {
 		}
 	}
 	
-	public synchronized void reset() {
-		players.clear();
-		playerMap.clear();
-		turn = null;
-		started = false;
-		finished = false;
-		for (YatzyListener l : listeners) {
-			l.onReset(this);
-		}
-	}
-	
 	public boolean isFinished() {
 		return finished;
 	}

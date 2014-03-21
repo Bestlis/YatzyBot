@@ -489,11 +489,6 @@ public class YatzyBot {
 								}
 
 								@Override
-								public void onReset(Yahtzee y) {
-									getBot().sendMessage(channelObj, "Game reset! Please add players!");
-								}
-
-								@Override
 								public void onGameComplete(Yahtzee y) {
 									StringBuilder sb = new StringBuilder();
 									boolean first = true;
