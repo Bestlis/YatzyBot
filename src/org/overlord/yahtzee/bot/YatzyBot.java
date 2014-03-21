@@ -175,8 +175,10 @@ public class YatzyBot {
 				}
 				getBot().sendMessage(
 					channelObj,
-					"Game complete! Final scores: " + sb.toString() + ". " +
-					"Please use .reset to play again!"
+					fixPrefix(
+						"Game complete! Final scores: " + sb.toString() + ". " +
+						"Please use %prefix%reset to play again!"
+					)
 				);
 			}
 
@@ -223,7 +225,7 @@ public class YatzyBot {
 					if (event.getChannel() != null) {
 						if (event.getMessage() == null) return;
 						
-						boolean hasCmdPr = event.getMessage().charAt(0) == '.';
+						boolean hasCmdPr = event.getMessage().charAt(0) == prefix;
 						if (!hasCmdPr) return;						
 						
 						String trimmedMsg = event.getMessage().trim();
@@ -278,13 +280,13 @@ public class YatzyBot {
 		
 									event.respond("#" + y.getTurn().getRolls() + ": dice: " + diceToString(rolled, false) + ", scores: " + getDiceStr(y.getTurn().getPlayer().getTotals(), scores));
 								} catch (UsedAllRollsException e) {
-									event.respond("Used all three rolls. Use .choose/.c <scoring> to choose a scoring.");
+									event.respond(fixPrefix("Used all three rolls. Use %prefix%choose/%prefix%c <scoring> to choose a scoring."));
 									return;
 								} catch (DieNumberNotFoundException e) {
 									event.respond("Couldn't find face number in dice to roll.");
 									return;
 								} catch (GameCompleteException e) {
-									event.respond("Game complete. Please use .reset to reset the bot.");
+									event.respond(fixPrefix("Game complete. Please use %prefix%reset to reset the bot."));
 									return;
 								} catch (ReqRollException e) {
 									event.respond("Must roll at least once to re-roll particular face numbers.");
@@ -411,13 +413,13 @@ public class YatzyBot {
 									event.respond("Must roll at least once!");
 									return;
 								} catch (UsedAllRollsException e) {
-									event.respond("Used all three rolls. Use .choose/.c <scoring> to choose a scoring.");
+									event.respond(fixPrefix("Used all three rolls. Use %prefix%choose/%prefix%c <scoring> to choose a scoring."));
 									return;
 								} catch (DieNumberNotFoundException e) {
 									event.respond("Couldn't find face number in dice to hold.");
 									return;
 								} catch (GameCompleteException e) {
-									event.respond("Game complete. Please use .reset to reset the bot.");
+									event.respond(fixPrefix("Game complete. Please use %prefix%reset to reset the bot."));
 									return;
 								}
 							}
