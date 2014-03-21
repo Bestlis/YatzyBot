@@ -33,6 +33,7 @@ public final class ConfigManager {
 	
 	protected boolean attemptedRead = false;
 	protected boolean firstRun = false;
+	protected boolean disableWrites = false;
 	
 	public static final ConfigManager getInstance() {
 		return INSTANCE;
@@ -60,105 +61,111 @@ public final class ConfigManager {
 	}
 	
 	public boolean read() throws IOException {
-		attemptedRead = true;
-		YatzyUser.out(
-			"Reading config from disk. This will erase in-memory values."
-		);
-		Path inpath = Paths.get(CONFIG_PATH);
-		File infile = inpath.toFile();
-		if (!infile.exists() || readFile(inpath, StandardCharsets.UTF_8).isEmpty()) {
-			YatzyUser.out(
-				"Config file '" + infile.getAbsolutePath() + "' does not " +
-				"exist or is empty. Treating as a first-run."
-			);
-			firstRun = true;
-			return false;
-		}
-		final Ini ini = new Ini();
 		try {
-			ini.load(infile);
-			firstRun = false;
-		} catch (InvalidFileFormatException e) {
-			throw new IllegalStateException(e);
-		}
-		Section s_general = ini.get("General");
-		if (s_general != null) {
-			String admin_passwords = s_general.get("Admin_Passwords");
-			if (admin_passwords == null || (admin_passwords = admin_passwords.trim()).isEmpty()) {
-				throw new IllegalStateException("No admin passwords found in config file. There should be at least one.");
+			disableWrites = true;
+			
+			attemptedRead = true;
+			YatzyUser.out(
+				"Reading config from disk. This will erase in-memory values."
+			);
+			Path inpath = Paths.get(CONFIG_PATH);
+			File infile = inpath.toFile();
+			if (!infile.exists() || readFile(inpath, StandardCharsets.UTF_8).isEmpty()) {
+				YatzyUser.out(
+					"Config file '" + infile.getAbsolutePath() + "' does not " +
+					"exist or is empty. Treating as a first-run."
+				);
+				firstRun = true;
+				return false;
 			}
-			Map<String, String> ups = convertStr2UP(admin_passwords);
-			YatzyUser.clearAdminPasswords();
-			YatzyUser.addAdminPasswords(ups);
-		}
-		Section s_servers = ini.get("Servers");
-		if (s_servers != null) {
-			String[] server_sections = s_servers.childrenNames();
-			for (String serverId : server_sections) {
-				Section ss = s_servers.getChild(serverId);
-				if (ss == null) throw new IllegalStateException(
-					"Couldn't get server section even though it was listed as a child!"
-				);
-				String serverHost        = ss.get("Server");
-				String serverNick        = ss.get("Nickname");
-				String serverPasswords_s = ss.get("Passwords");
-				String serverChannels_s  = ss.get("Channels");
-				String serverActive_s    = ss.get("Activated");
-				String perform_s         = ss.get("Perform");
-				
-				if (serverHost == null) {
-					throw new ParsingException("Server host not found in server section!");
+			final Ini ini = new Ini();
+			try {
+				ini.load(infile);
+				firstRun = false;
+			} catch (InvalidFileFormatException e) {
+				throw new IllegalStateException(e);
+			}
+			Section s_general = ini.get("General");
+			if (s_general != null) {
+				String admin_passwords = s_general.get("Admin_Passwords");
+				if (admin_passwords == null || (admin_passwords = admin_passwords.trim()).isEmpty()) {
+					throw new IllegalStateException("No admin passwords found in config file. There should be at least one.");
 				}
-				boolean serverActive = true;
-				if (serverActive_s != null) {
-					if (serverActive_s.trim().equals("false")) {
-						serverActive = false;
+				Map<String, String> ups = convertStr2UP(admin_passwords);
+				YatzyUser.clearAdminPasswords();
+				YatzyUser.addAdminPasswords(ups);
+			}
+			Section s_servers = ini.get("Servers");
+			if (s_servers != null) {
+				String[] server_sections = s_servers.childrenNames();
+				for (String serverId : server_sections) {
+					Section ss = s_servers.getChild(serverId);
+					if (ss == null) throw new IllegalStateException(
+						"Couldn't get server section even though it was listed as a child!"
+					);
+					String serverHost        = ss.get("Server");
+					String serverNick        = ss.get("Nickname");
+					String serverPasswords_s = ss.get("Passwords");
+					String serverChannels_s  = ss.get("Channels");
+					String serverActive_s    = ss.get("Activated");
+					String perform_s         = ss.get("Perform");
+					
+					if (serverHost == null) {
+						throw new ParsingException("Server host not found in server section!");
 					}
-				}
-				ArrayList<String> channels = new ArrayList<String>();
-				
-				Map<String,String> serverPasswords = convertStr2UP(serverPasswords_s);
-				Section s_channels = ss.getChild("Channels");
-				if (s_channels != null) {
-					for (String channelsect : s_channels.childrenNames()) {
-						Section s_channel = s_channels.getChild(channelsect);
-						channels.add(channelsect);
-					}
-				}
-				String[] serverChannels = channels.toArray(new String[0]);
-				YatzyUser yu = YatzyUser.addServer(
-					serverId, serverNick, serverHost, serverChannels,
-					serverPasswords, serverActive, perform_s
-				);
-				// now we need to add specific channel stuff
-				if (s_channels != null) {
-					for (String channelsect : s_channels.childrenNames()) {
-						Section s_channel = s_channels.getChild(channelsect);
-						YatzyBot yb = yu.getBots().get(channelsect);
-						if (yb == null) {
-							throw new IllegalStateException(
-								"Couldn't find channel with name: '" +  channelsect + " after adding!"
-							);
+					boolean serverActive = true;
+					if (serverActive_s != null) {
+						if (serverActive_s.trim().equals("false")) {
+							serverActive = false;
 						}
-						String prefixCh = s_channel.get("Prefix");
-						if (prefixCh != null) {
-							prefixCh = prefixCh.trim();
-							if (!prefixCh.isEmpty()) {
-								char prf = prefixCh.charAt(0);
-								if (yb.getPrefix() != prf) {
-									yb.setPrefix(prf);
+					}
+					ArrayList<String> channels = new ArrayList<String>();
+					
+					Map<String,String> serverPasswords = convertStr2UP(serverPasswords_s);
+					Section s_channels = ss.getChild("Channels");
+					if (s_channels != null) {
+						for (String channelsect : s_channels.childrenNames()) {
+							Section s_channel = s_channels.getChild(channelsect);
+							channels.add(channelsect);
+						}
+					}
+					String[] serverChannels = channels.toArray(new String[0]);
+					YatzyUser yu = YatzyUser.addServer(
+						serverId, serverNick, serverHost, serverChannels,
+						serverPasswords, serverActive, perform_s
+					);
+					// now we need to add specific channel stuff
+					if (s_channels != null) {
+						for (String channelsect : s_channels.childrenNames()) {
+							Section s_channel = s_channels.getChild(channelsect);
+							YatzyBot yb = yu.getBots().get(channelsect);
+							if (yb == null) {
+								throw new IllegalStateException(
+									"Couldn't find channel with name: '" +  channelsect + " after adding!"
+								);
+							}
+							String prefixCh = s_channel.get("Prefix");
+							if (prefixCh != null) {
+								prefixCh = prefixCh.trim();
+								if (!prefixCh.isEmpty()) {
+									char prf = prefixCh.charAt(0);
+									if (yb.getPrefix() != prf) {
+										yb.setPrefix(prf);
+									}
 								}
 							}
 						}
 					}
 				}
 			}
+			YatzyUser.out(
+				"Read config from disk. Previous in-memory values erased and state " +
+				"synched."
+			);
+			return true;
+		} finally {
+			disableWrites = false;
 		}
-		YatzyUser.out(
-			"Read config from disk. Previous in-memory values erased and state " +
-			"synched."
-		);
-		return true;
 	}
 	
 	public boolean isFirstRun() {
@@ -179,6 +186,12 @@ public final class ConfigManager {
 	
 	public void write() throws IOException {
 		if (VERBOSE) {
+			if (disableWrites) {
+				YatzyUser.out(
+					"Recieved request to write config but ignoring due to disableWrites."
+				);
+				return;
+			}
 			YatzyUser.out(
 				"Writing config to disk. This will erase any previous stored config."
 			);
