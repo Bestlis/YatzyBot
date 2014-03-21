@@ -104,6 +104,7 @@ public final class ConfigManager {
 				String serverPasswords_s = ss.get("Passwords");
 				String serverChannels_s  = ss.get("Channels");
 				String serverActive_s    = ss.get("Activated");
+				String perform_s         = ss.get("Perform");
 				
 				if (serverHost == null) {
 					throw new ParsingException("Server host not found in server section!");
@@ -114,23 +115,38 @@ public final class ConfigManager {
 						serverActive = false;
 					}
 				}
+				ArrayList<String> channels = new ArrayList<String>();
 				
 				Map<String,String> serverPasswords = convertStr2UP(serverPasswords_s);
-				
-				String[] serverChannels = null;
-				if (serverChannels_s != null) {
-					serverChannels_s = serverChannels_s.trim();
-					if (!serverChannels_s.isEmpty()) {
-						serverChannels = serverChannels_s.split(",");
-						for (int i = 0; i < serverChannels.length; i++) {
-							serverChannels[i] = serverChannels[i].trim();
+				Section s_channels = ss.getChild("Channels");
+				if (s_channels != null) {
+					for (String channelsect : s_channels.childrenNames()) {
+						Section s_channel = s_channels.getChild(channelsect);
+						channels.add(channelsect);
+					}
+				}
+				String[] serverChannels = channels.toArray(new String[0]);
+				YatzyUser yu = YatzyUser.addServer(
+					serverId, serverNick, serverHost, serverChannels,
+					serverPasswords, serverActive, perform_s
+				);
+				// now we need to add specific channel stuff
+				if (s_channels != null) {
+					for (String channelsect : s_channels.childrenNames()) {
+						Section s_channel = s_channels.getChild(channelsect);
+						YatzyBot yb = yu.getBots().get(channelsect);
+						if (yb == null) {
+							throw new IllegalStateException(
+								"Couldn't find channel with name: '" +  channelsect + " after adding!"
+							);
+						}
+						String prefixCh = s_channel.get("Prefix");
+						if (prefixCh != null) {
+							prefixCh = prefixCh.trim();
+							if (!prefixCh.isEmpty()) yb.setPrefix(prefixCh.charAt(0));
 						}
 					}
 				}
-				YatzyUser.addServer(
-					serverId, serverNick, serverHost, serverChannels,
-					serverPasswords, serverActive
-				);
 			}
 		}
 		YatzyUser.out(
@@ -178,17 +194,22 @@ public final class ConfigManager {
 				s_server.add("Passwords", pwordStr);
 			}
 			if (!yu.getBots().isEmpty()) {
-				StringBuilder sb = new StringBuilder();
-				boolean first = true;
-				for (YatzyBot bot : yu.getBots().values()) {
-					if (!first) sb.append(',');
-					sb.append(bot.getChannel());
-					first = false;
+				Section s_channels = s_server.addChild("Channels");
+				for (YatzyBot yb : yu.getBots().values()) {
+					String channel = yb.getChannel();
+					Section s_channel = s_channels.addChild(channel);
+					s_channel.add("Name", channel);
+					if (yb.getPrefix() != YatzyBot.DEFAULT_PREFIX) {
+						s_channel.add("Prefix", "" + yb.getPrefix());
+					}
 				}
-				s_server.add("Channels", sb.toString());
 			}
 			if (!yu.isActivated()) {
 				s_server.add("Activated", "false");
+			}
+			String perform = yu.getPerform();
+			if (perform == null || perform.isEmpty()) {
+				s_server.add("Perform", perform);
 			}
 		}
 		try {

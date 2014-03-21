@@ -49,6 +49,7 @@ public class YatzyUser {
 	
 	protected final String nick;
 	protected final String server;
+	protected String perform = null;
 	
 	protected final Map<String, String> passwords    = new HashMap<String, String>();
 	protected final Map<String, String> um_passwords = Collections.unmodifiableMap(passwords);
@@ -135,7 +136,7 @@ public class YatzyUser {
 	
 	public static YatzyUser addServer(
 		String id, String nick, String server, String[] channels,
-		Map<String,String> passwords, boolean activated
+		Map<String,String> passwords, boolean activated, String perform
 	) throws ServerIdAlreadyExistsException {
 		YatzyUser user = new YatzyUser(id, nick, server, channels, passwords, activated);
 		users.put(id, user);
@@ -272,7 +273,7 @@ public class YatzyUser {
 	}
 	
 	public static Map<String, YatzyUser> getUsers() {
-		return users;
+		return um_users;
 	}
 	
 	public static Map<String, String> getAdminPasswords() {
@@ -317,7 +318,7 @@ public class YatzyUser {
 			addAdminUserPass(uname_str, pword_str);
 			System.out.println("Added global administrator: " + uname_str);
 			
-			final YatzyUser yu = addServer(id_str, DEFAULT_NICK, server_str, null, null, true);
+			final YatzyUser yu = addServer(id_str, DEFAULT_NICK, server_str, null, null, true, null);
 			System.out.println("Added initial server: " + id_str + ":" + yu.getNick() + "@" + server_str);
 		}
 		for (YatzyUser yu : users.values()) {
@@ -671,6 +672,52 @@ public class YatzyUser {
 						}
 						event.respond("Servers: [" + sb.toString() + "]");
 						return;
+					} else if (first.equals("chanset")) {
+						if (!isAuthorised(event.getUser())) {
+							event.respond("Not authorised to perform this action. Try logging in first.");
+							return;
+						}
+						if (follow == null || follow.isEmpty()) {
+							event.respond("Syntax: chanset {server_id} <channel> <variable> <value>. (Wrong number of arguments.)");
+							return;
+						}
+						String[] split = follow.split(" ");
+						if (split.length < 3) {
+							event.respond("Syntax: chanset {server_id} <channel> <variable> <value>. (Wrong number of arguments.)");
+							return;
+						}
+						String server_id;
+						String channel;
+						String variable;
+						String value;
+						
+						if (split.length == 3) {
+							server_id = null;
+							channel   = split[0].trim();
+							variable  = split[1].trim();
+							value     = split[2].trim();
+						} else {
+							server_id = split[0].trim();
+							channel   = split[1].trim();
+							variable  = split[2].trim();
+							value     = split[3].trim();							
+						}
+						YatzyUser yuser = YatzyUser.this;
+						if (server_id != null) {
+							yuser = um_users.get(server_id);
+							if (yuser == null) {
+								event.respond("Couldn't find specified server: '" + server_id + "'.");
+								return;
+							}
+						}
+						YatzyBot ybot = yuser.getBots().get(channel);
+						if (ybot == null) {
+							event.respond("Couldn't find specified channel on server '" + yuser.getId() + "': '" + channel + "'.");
+							return;
+						}
+						String old = ybot.setString(variable, value);
+						event.respond("Set variable '" + variable + "' with value '" + value + "', replacing old value '" + old + "'");
+						return;
 					} else if (first.equals("addserver")) {
 						if (!isAuthorised(event.getUser())) {
 							event.respond("Not authorised to perform this action. Try logging in first.");
@@ -701,7 +748,7 @@ public class YatzyUser {
 							event.getUser()
 						);
 						try {
-							YatzyUser yu = addServer(serverid, nick, host, channels, null, true);
+							YatzyUser yu = addServer(serverid, nick, host, channels, null, true, null);
 						} catch (ServerIdAlreadyExistsException e) {
 							event.respond("Server with id '" + serverid + "' already exists.");
 							return;
@@ -789,6 +836,22 @@ public class YatzyUser {
    		ConfigManager.getInstance().writeWarn();
    		return yu;
     }
+    
+    public void redoPerform() {
+    	if (perform != null && !perform.isEmpty()) {
+    		bot.sendRawLine(perform);
+    	}
+    }
+    
+    public String getPerform() {
+		return perform;
+	}
+    
+    public String setPerform(String perform) {
+    	String old = this.perform;
+		this.perform = perform;
+		return old;
+	}
 
 	public void stop() {
     	if (!running) return;

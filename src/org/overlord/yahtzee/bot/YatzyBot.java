@@ -38,8 +38,12 @@ import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
 
 public class YatzyBot {
-	protected static final String VERSION        = "0.863";
-	public    static final char   DEFAULT_PREFIX = '.';
+	protected static final String   VERSION        = "0.863";
+	public    static final char     DEFAULT_PREFIX = '.';
+	
+	public static final String[] SET_STR_VARS = new String[] {
+		"prefix" 
+	};
 	
 	protected final YatzyUser user;
 	protected final String    server;
@@ -808,6 +812,38 @@ public class YatzyBot {
     	synchronized (YatzyUser.OUTPUT_LOCK) {
     		_err(msg, null);
     	}
+    }
+    
+    public String setString(String variable, String value) {
+    	if (variable == null) {
+    		throw new IllegalArgumentException("setString variable cannot be null!");
+    	}
+    	variable = variable.trim();
+    	value    = value.trim();
+    	
+    	if (variable.equals("prefix")) {
+    		if (value.length() > 1) {
+    			throw new IllegalArgumentException("Prefix must be a single character!");
+    		}
+    		char old  = prefix;
+    		char newc = value.charAt(0);
+    		setPrefix(newc);
+    		return "" + old;
+    	}
+    	throw new IllegalArgumentException(
+    		"Couldn't find variable: '" + variable + "'."
+    	);
+    }
+    
+    public String getString(String variable) {
+    	variable = variable.trim();
+    	
+    	if (variable.equals("prefix")) {
+    		return "" + getPrefix();
+    	}
+    	throw new IllegalArgumentException(
+    		"Couldn't find variable: '" + variable + "'."
+    	);
     }
 	
     public void _out(String msg, User origin) {
