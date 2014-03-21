@@ -84,10 +84,14 @@ public class YatzyBot {
 		return prefix;
 	}
 	
-	public void setPrefix(char prefix) {
+	public char setPrefix(char prefix) {
+		if (this.prefix == prefix) return prefix;
+		char old = this.prefix;
 		this.prefix = prefix;
 		updateLocalText();
 		ConfigManager.getInstance().writeWarn();
+		getBot().sendMessage(channelObj, "Prefix changed from " + old + " to " + prefix);
+		return old;
 	}
 	
 	public String getChannel() {

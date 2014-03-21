@@ -143,7 +143,12 @@ public final class ConfigManager {
 						String prefixCh = s_channel.get("Prefix");
 						if (prefixCh != null) {
 							prefixCh = prefixCh.trim();
-							if (!prefixCh.isEmpty()) yb.setPrefix(prefixCh.charAt(0));
+							if (!prefixCh.isEmpty()) {
+								char prf = prefixCh.charAt(0);
+								if (yb.getPrefix() != prf) {
+									yb.setPrefix(prf);
+								}
+							}
 						}
 					}
 				}
