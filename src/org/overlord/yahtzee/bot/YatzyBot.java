@@ -166,7 +166,10 @@ public class YatzyBot {
 				if (y != null && !y.isFinished()) {
 					Player p = y.removePlayer(event.getUser().getNick());
 					if (p != null) {
-						event.respond("Removed player because of quit: " + event.getUser().getNick());
+						event.respond(
+							"Removed player because of quit: " +
+							event.getUser().getNick()
+						);
 					}
 				}
 			}
