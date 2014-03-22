@@ -10,7 +10,7 @@ import java.util.EnumMap;
 import java.util.Map;
 
 public class Player {
-	protected final String name;
+	protected final IUserIdentifier identifier;
 	protected int totalScore = 0;	
 	final Map<Scoring, Integer> totals = new EnumMap<Scoring, Integer>(Scoring.class);
 	{
@@ -20,12 +20,12 @@ public class Player {
 	}
 	final Map<Scoring, Integer> um_totals = Collections.unmodifiableMap(totals);
 	
-	public Player(String name) {
-		this.name = name;
+	public Player(IUserIdentifier identifier) {
+		this.identifier = identifier;
 	}
 	
 	public String getName() {
-		return name;
+		return identifier.getNick();
 	}
 	
 	public Map<Scoring, Integer> getTotals() {

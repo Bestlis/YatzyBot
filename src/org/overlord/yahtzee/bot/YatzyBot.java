@@ -515,9 +515,9 @@ public class YatzyBot {
 								"Game reset! Please add players :)"
 							);
 						} else if (first.equals(prefix + "play")) {
-							if (y.getPlayerMap().get(event.getUser().getNick()) == null) {
+							if (y.getPlayer(event.getUser().getNick()) == null) {
 								try {
-									y.addPlayer(new Player(event.getUser().getNick()));
+									y.addPlayer(new BotUserIdentifier(event.getUser()));
 									return;
 								} catch (GameStartedException e) {
 									event.respond("Game already started, cannot add new players.");
@@ -787,6 +787,7 @@ public class YatzyBot {
 	}
 	
 	void dispose() {
+		y.dispose();
 		getBot().getListenerManager().removeListener(listener);
 	}
 	

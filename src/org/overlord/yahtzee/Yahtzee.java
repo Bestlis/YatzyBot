@@ -10,6 +10,7 @@ import java.util.Arrays;
 import java.util.EnumMap;
 import java.util.HashMap;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.Map;
 import java.util.concurrent.CopyOnWriteArrayList;
 
@@ -24,7 +25,6 @@ public class Yahtzee {
 	}
 	protected final List<YatzyListener> listeners = new CopyOnWriteArrayList<YatzyListener>();
 	
-	protected final Map<String, Player> playerMap = new HashMap<String, Player>();
 	protected final List<Player> players = new ArrayList<Player>();
 	protected final Die[] dice = new Die[5];
 	{
@@ -119,15 +119,13 @@ public class Yahtzee {
 		}
 	}
 	
-	public synchronized void addPlayer(Player p) throws GameStartedException {
+	public synchronized void addPlayer(IUserIdentifier ui) throws GameStartedException {
 		if (started) throw new GameStartedException("Cannot add players after game start!");
-		
+		Player p = new Player(ui);
 		this.players.add(p);
-		this.playerMap.put(p.getName(), p);
-		
 		for (YatzyListener l : listeners) {
 			l.onAddPlayer(p);
-		}		
+		}
 	}
 
 	public Die[] getDice() {
@@ -196,15 +194,22 @@ public class Yahtzee {
 			l.onTurn(this.turn);
 		}
 	}
+	
+	public Player getPlayer(String player) {
+		if (player == null)
+			throw new IllegalArgumentException("Player cannot be null in getPlayer(..).");
+		for (Player p : players) {
+			if (player.equals(p.getName())) {
+				return p;
+			}
+		}
+		return null;
+	}
 
 	public synchronized void turnComplete(Turn turn2) {
 		for (YatzyListener l : listeners) {
 			l.onTurnComplete(turn);
 		}		
-	}
-
-	public Map<String, Player> getPlayerMap() {
-		return playerMap;
 	}
 	
 	public List<Player> getPlayers() {
@@ -212,17 +217,29 @@ public class Yahtzee {
 	}
 
 	public synchronized void removePlayer(String name) throws PlayerNotExistsException {
-		Player p = playerMap.get(name);
-		if (p == null) throw new PlayerNotExistsException("Player " + name + " doesn't exist!");
-		if (turn != null && turn.getPlayer() == p) {
-			turnComplete(turn);
-			turnDone(turn);
+		if (name == null) throw new IllegalArgumentException(
+			"Name cannot be null in removePlayer(..)!"
+		);
+		Player found = null;
+		ListIterator<Player> p_li = players.listIterator();
+		while (p_li.hasNext()) {
+			Player p = p_li.next();
+			if (name.equals(p.getName())) {
+				found = p;
+				if (turn != null && turn.getPlayer() == p) {
+					turnComplete(turn);
+					turnDone(turn);
+				}
+				p_li.remove();
+				for (YatzyListener l : listeners) {
+					l.onRemovePlayer(p);
+				}
+				break;
+			}
 		}
-		playerMap.remove(name);
-		players.remove(p);
-		for (YatzyListener l : listeners) {
-			l.onRemovePlayer(p);
-		}
+		if (found == null) throw new PlayerNotExistsException(
+			"Player " + name + " doesn't exist!"
+		);
 	}
 	
 	public static final int MAX_SCORING;
