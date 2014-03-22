@@ -119,13 +119,19 @@ public class Yahtzee {
 		}
 	}
 	
-	public synchronized void addPlayer(IUserIdentifier ui) throws GameStartedException {
+	public synchronized Player addPlayer(IUserIdentifier ui) throws GameStartedException {
+		System.out.println("addPlayer #0");
 		if (started) throw new GameStartedException("Cannot add players after game start!");
+		System.out.println("addPlayer #1");
 		Player p = new Player(ui);
+		System.out.println("addPlayer #2");
 		this.players.add(p);
+		System.out.println("addPlayer #3");
 		for (YatzyListener l : listeners) {
 			l.onAddPlayer(p);
 		}
+		System.out.println("addPlayer #4");
+		return p;
 	}
 
 	public Die[] getDice() {
@@ -196,8 +202,9 @@ public class Yahtzee {
 	}
 	
 	public Player getPlayer(String player) {
-		if (player == null)
-			throw new IllegalArgumentException("Player cannot be null in getPlayer(..).");
+		if (player == null) throw new IllegalArgumentException(
+			"Player cannot be null in getPlayer(..)."
+		);
 		for (Player p : players) {
 			if (player.equals(p.getName())) {
 				return p;
@@ -216,16 +223,14 @@ public class Yahtzee {
 		return players;
 	}
 
-	public synchronized void removePlayer(String name) throws PlayerNotExistsException {
+	public synchronized Player removePlayer(String name) {
 		if (name == null) throw new IllegalArgumentException(
 			"Name cannot be null in removePlayer(..)!"
 		);
-		Player found = null;
 		ListIterator<Player> p_li = players.listIterator();
 		while (p_li.hasNext()) {
 			Player p = p_li.next();
 			if (name.equals(p.getName())) {
-				found = p;
 				if (turn != null && turn.getPlayer() == p) {
 					turnComplete(turn);
 					turnDone(turn);
@@ -234,12 +239,10 @@ public class Yahtzee {
 				for (YatzyListener l : listeners) {
 					l.onRemovePlayer(p);
 				}
-				break;
+				return p;
 			}
 		}
-		if (found == null) throw new PlayerNotExistsException(
-			"Player " + name + " doesn't exist!"
-		);
+		return null;
 	}
 	
 	public static final int MAX_SCORING;

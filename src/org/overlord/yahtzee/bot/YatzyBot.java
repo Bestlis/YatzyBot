@@ -36,6 +36,7 @@ import org.pircbotx.hooks.events.JoinEvent;
 import org.pircbotx.hooks.events.KickEvent;
 import org.pircbotx.hooks.events.MessageEvent;
 import org.pircbotx.hooks.events.PartEvent;
+import org.pircbotx.hooks.events.QuitEvent;
 
 public class YatzyBot {
 	protected static final String VERSION        = "0.87";
@@ -76,8 +77,12 @@ public class YatzyBot {
 		
 		updateLocalText();
 		
+		System.out.println("YatzyBot c'tor #1");
+		
 		if (activated) activate();
 		else deactivate();
+		
+		System.out.println("YatzyBot c'tor #2");
 	}
 	
 	public char getPrefix() {
@@ -90,7 +95,9 @@ public class YatzyBot {
 		this.prefix = prefix;
 		updateLocalText();
 		ConfigManager.getInstance().writeWarn();
-		getBot().sendMessage(channelObj, "Prefix changed from " + old + " to " + prefix);
+		if (started) {
+			getBot().sendMessage(channelObj, "Prefix changed from " + old + " to " + prefix);
+		}
 		return old;
 	}
 	
@@ -103,10 +110,15 @@ public class YatzyBot {
 	}
 	
 	public void start() {
+		System.out.println("YatzyBot start() #1");
+		
 		if (started) return;
 		if (!activated) throw new IllegalStateException("Cannot manipulate a deactivated user.");
 		
+		System.out.println("YatzyBot start() #2");
+		
 		this.channelObj = getBot().getChannel(channel);
+		reset();
 		
 		getBot().getListenerManager().addListener(listener = new ListenerAdapter<PircBotX>() {
 			@Override
@@ -133,9 +145,30 @@ public class YatzyBot {
 			
 			@Override
 			public void onPart(PartEvent<PircBotX> event) throws Exception {
-				if (!getBot().getUserBot().equals(event.getUser())) return;
 				if (!event.getChannel().equals(channelObj)) return;
-				_out("Bot parted channel: " + event.getChannel().getName());
+				if (getBot().getUserBot().equals(event.getUser())) {
+					_out("Bot parted channel: " + event.getChannel().getName());
+				} else {
+					if (y != null && !y.isFinished()) {
+						Player p = y.removePlayer(event.getUser().getNick());
+						if (p != null) {
+							event.respond(
+								"Removed player because of part: " +
+								event.getUser().getNick()
+							);
+						}
+					}
+				}
+			}
+			
+			@Override
+			public void onQuit(QuitEvent<PircBotX> event) throws Exception {
+				if (y != null && !y.isFinished()) {
+					Player p = y.removePlayer(event.getUser().getNick());
+					if (p != null) {
+						event.respond("Removed player because of quit: " + event.getUser().getNick());
+					}
+				}
 			}
 			
 			@Override
@@ -428,101 +461,25 @@ public class YatzyBot {
 								}
 								y.dispose();
 							}
-							y = new Yahtzee();
-							y.addListener(new YatzyListener() {
-								@Override
-								public void onTurn(Turn t) {
-									Map<Scoring, Integer> unchosen =
-										new EnumMap<Scoring, Integer>(Scoring.class)
-									;
-									Map<Scoring, Integer> chosen =
-										new EnumMap<Scoring, Integer>(Scoring.class)
-									;
-
-									for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
-										if (entry.getValue() == -1) {
-											unchosen.put(entry.getKey(), entry.getValue());
-										} else {
-											chosen.put(entry.getKey(), entry.getValue());
-										}
-									}
-									getBot().sendMessage(
-										channelObj,
-										t.getPlayer().getName() + ", it is your turn. Totals: " +
-										getTotalsStr(chosen, false, false) + ", Score: " +
-										y.getTurn().getPlayer().getTotalScore() +
-										", Turns remaining after this turn: " +
-										(unchosen.size() - 1)
-									);
-								}
-
-								@Override
-								public void onStart(Yahtzee y) {
-									getBot().sendMessage(channelObj, "The game has started!");
-								}
-
-								@Override
-								public void onTurnComplete(Turn t) {
-									Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
-									Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
-
-									for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
-										if (entry.getValue() == -1) {
-											unchosen.put(entry.getKey(), entry.getValue());
-										} else {
-											chosen.put(entry.getKey(), entry.getValue());
-										}
-									}
-
-									getBot().sendMessage(
-										channelObj,
-										"Turn completed. Totals: " +
-										getTotalsStr(chosen, false, false) +
-										", Score: " + y.getTurn().getPlayer().getTotalScore() +
-										", Turns remaining: " + unchosen.size()
-									);
-								}
-
-								@Override
-								public void onAddPlayer(Player p) {
-									getBot().sendMessage(channelObj, "Player added: " + p.getName());
-								}
-
-								@Override
-								public void onGameComplete(Yahtzee y) {
-									StringBuilder sb = new StringBuilder();
-									boolean first = true;
-									for (Player p : y.getPlayers()) {
-										if (!first) { sb.append(", "); }
-										sb.append(p.getName()).append(": ").append(p.getTotalScore());
-										first = false;
-									}
-									getBot().sendMessage(
-										channelObj,
-										fixPrefix(
-											"Game complete! Final scores: " + sb.toString() + ". " +
-											"Please use %prefix%reset to play again!"
-										)
-									);
-								}
-
-								@Override
-								public void onRemovePlayer(Player p) {
-									getBot().sendMessage(channelObj, "Player removed: " + p.getName());
-								}
-							});
-							event.respond(
-								"Game reset! Please add players :)"
-							);
+							reset();
 						} else if (first.equals(prefix + "play")) {
-							if (y.getPlayer(event.getUser().getNick()) == null) {
+							System.out.println("play #1: y: " + y);
+							Player p = y.getPlayer(event.getUser().getNick());
+							if (p == null) {
 								try {
-									y.addPlayer(new BotUserIdentifier(event.getUser()));
+									System.out.println("play #2");
+									p = y.addPlayer(
+										new BotUserIdentifier(event.getUser())
+									);
+									System.out.println("play #3");
 									return;
 								} catch (GameStartedException e) {
 									event.respond("Game already started, cannot add new players.");
 									return;
 								}
+							} else {
+								System.out.println("play #x: " + p);
+								return;
 							}
 						} else if (first.equals(prefix + "deleteplayer")) {
 							String[] tokens = trimmedMsg.split(" ");
@@ -537,9 +494,8 @@ public class YatzyBot {
 									}
 								}
 								if (found) {
-									try {
-										y.removePlayer(name);
-									} catch (PlayerNotExistsException e) {
+									Player p = y.removePlayer(name);
+									if (p == null) { 
 										event.respond("Player '" + name + "' isn't participating in the current game.");
 										return;
 									}
@@ -623,6 +579,96 @@ public class YatzyBot {
 			newtext[i] = fixPrefix(text[i]);
 		}
 		return newtext;
+	}
+	
+	public void reset() {
+		System.out.println("YatzyBot reset() #1");
+		y = new Yahtzee();
+		y.addListener(new YatzyListener() {
+			@Override
+			public void onTurn(Turn t) {
+				Map<Scoring, Integer> unchosen =
+					new EnumMap<Scoring, Integer>(Scoring.class)
+				;
+				Map<Scoring, Integer> chosen =
+					new EnumMap<Scoring, Integer>(Scoring.class)
+				;
+
+				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+					if (entry.getValue() == -1) {
+						unchosen.put(entry.getKey(), entry.getValue());
+					} else {
+						chosen.put(entry.getKey(), entry.getValue());
+					}
+				}
+				getBot().sendMessage(
+					channelObj,
+					t.getPlayer().getName() + ", it is your turn. Totals: " +
+					getTotalsStr(chosen, false, false) + ", Score: " +
+					y.getTurn().getPlayer().getTotalScore() +
+					", Turns remaining after this turn: " +
+					(unchosen.size() - 1)
+				);
+			}
+
+			@Override
+			public void onStart(Yahtzee y) {
+				getBot().sendMessage(channelObj, "The game has started!");
+			}
+
+			@Override
+			public void onTurnComplete(Turn t) {
+				Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
+				Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
+
+				for (Entry<Scoring, Integer> entry : y.getTurn().getPlayer().getTotals().entrySet()) {
+					if (entry.getValue() == -1) {
+						unchosen.put(entry.getKey(), entry.getValue());
+					} else {
+						chosen.put(entry.getKey(), entry.getValue());
+					}
+				}
+
+				getBot().sendMessage(
+					channelObj,
+					"Turn completed. Totals: " +
+					getTotalsStr(chosen, false, false) +
+					", Score: " + y.getTurn().getPlayer().getTotalScore() +
+					", Turns remaining: " + unchosen.size()
+				);
+			}
+
+			@Override
+			public void onAddPlayer(Player p) {
+				getBot().sendMessage(channelObj, "Player added: " + p.getName());
+			}
+
+			@Override
+			public void onGameComplete(Yahtzee y) {
+				StringBuilder sb = new StringBuilder();
+				boolean first = true;
+				for (Player p : y.getPlayers()) {
+					if (!first) { sb.append(", "); }
+					sb.append(p.getName()).append(": ").append(p.getTotalScore());
+					first = false;
+				}
+				getBot().sendMessage(
+					channelObj,
+					fixPrefix(
+						"Game complete! Final scores: " + sb.toString() + ". " +
+						"Please use %prefix%reset to play again!"
+					)
+				);
+			}
+
+			@Override
+			public void onRemovePlayer(Player p) {
+				getBot().sendMessage(channelObj, "Player removed: " + p.getName());
+			}
+		});
+		getBot().sendMessage(
+			channelObj, "Game reset! Please add players :)"
+		);
 	}
 	
 	public String   initialHelpTextLocal;

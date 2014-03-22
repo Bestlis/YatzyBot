@@ -185,13 +185,16 @@ public final class ConfigManager {
 	}
 	
 	public void write() throws IOException {
-		if (VERBOSE) {
-			if (disableWrites) {
+		if (disableWrites) {
+			if (VERBOSE) {
 				YatzyUser.out(
 					"Recieved request to write config but ignoring due to disableWrites."
 				);
-				return;
 			}
+			return;
+		}		
+		
+		if (VERBOSE) {
 			YatzyUser.out(
 				"Writing config to disk. This will erase any previous stored config."
 			);
