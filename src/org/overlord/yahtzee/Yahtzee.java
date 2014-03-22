@@ -239,6 +239,13 @@ public class Yahtzee {
 				for (YatzyListener l : listeners) {
 					l.onRemovePlayer(p);
 				}
+				if (players.isEmpty() && started && !finished) {
+					// finish game
+					finished = true;
+					for (YatzyListener l : listeners) {
+						l.onGameComplete(this);
+					}					
+				}
 				return p;
 			}
 		}
