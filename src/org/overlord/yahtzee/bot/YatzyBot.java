@@ -26,6 +26,7 @@ import org.overlord.yahtzee.ScoringAlreadyPlayedException;
 import org.overlord.yahtzee.Turn;
 import org.overlord.yahtzee.UsedAllRollsException;
 import org.overlord.yahtzee.Yahtzee;
+import org.overlord.yahtzee.Yahtzee.TurnEndReason;
 import org.overlord.yahtzee.YatzyListener;
 import org.pircbotx.Channel;
 import org.pircbotx.Colors;
@@ -620,7 +621,7 @@ public class YatzyBot {
 			}
 
 			@Override
-			public void onTurnComplete(Turn t) {
+			public void onTurnComplete(Turn t, TurnEndReason reason) {
 				Map<Scoring, Integer> unchosen = new EnumMap<Scoring, Integer>(Scoring.class);
 				Map<Scoring, Integer> chosen = new EnumMap<Scoring, Integer>(Scoring.class);
 

@@ -36,6 +36,12 @@ public class Yahtzee {
 	protected boolean started  = false;
 	protected boolean finished = false;
 	
+	public static enum TurnEndReason {
+		NO_REASON,
+		SCORING_CHOSEN,
+		PLAYER_REMOVED
+	}
+	
 	public Yahtzee() {
 
 	}
@@ -120,17 +126,12 @@ public class Yahtzee {
 	}
 	
 	public synchronized Player addPlayer(IUserIdentifier ui) throws GameStartedException {
-		System.out.println("addPlayer #0");
 		if (started) throw new GameStartedException("Cannot add players after game start!");
-		System.out.println("addPlayer #1");
 		Player p = new Player(ui);
-		System.out.println("addPlayer #2");
 		this.players.add(p);
-		System.out.println("addPlayer #3");
 		for (YatzyListener l : listeners) {
 			l.onAddPlayer(p);
 		}
-		System.out.println("addPlayer #4");
 		return p;
 	}
 
@@ -171,7 +172,9 @@ public class Yahtzee {
 		listeners.remove(listener);
 	}
 
-	synchronized void turnDone(Turn turn) {
+	synchronized void turnDone(Turn turn, TurnEndReason reason) {
+		turnComplete(turn, reason);
+		
 		int index = players.indexOf(turn.getPlayer());
 		int next = ++index % players.size();
 		
@@ -213,14 +216,22 @@ public class Yahtzee {
 		return null;
 	}
 
-	public synchronized void turnComplete(Turn turn2) {
+	protected synchronized void turnComplete(Turn turn, TurnEndReason reason) {
 		for (YatzyListener l : listeners) {
-			l.onTurnComplete(turn);
-		}		
+			l.onTurnComplete(turn, reason);
+		}
 	}
 	
 	public List<Player> getPlayers() {
 		return players;
+	}
+	
+	protected void gameComplete() {
+		// finish game
+		finished = true;
+		for (YatzyListener l : listeners) {
+			l.onGameComplete(this);
+		}		
 	}
 
 	public synchronized Player removePlayer(String name) {
@@ -232,19 +243,14 @@ public class Yahtzee {
 			Player p = p_li.next();
 			if (name.equals(p.getName())) {
 				if (turn != null && turn.getPlayer() == p) {
-					turnComplete(turn);
-					turnDone(turn);
+					turnDone(turn, TurnEndReason.PLAYER_REMOVED);
 				}
 				p_li.remove();
 				for (YatzyListener l : listeners) {
 					l.onRemovePlayer(p);
 				}
 				if (players.isEmpty() && started && !finished) {
-					// finish game
-					finished = true;
-					for (YatzyListener l : listeners) {
-						l.onGameComplete(this);
-					}					
+					gameComplete(); /* finish game */		
 				}
 				return p;
 			}

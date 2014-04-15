@@ -8,6 +8,8 @@ package org.overlord.yahtzee;
 import java.util.Arrays;
 import java.util.Map;
 
+import org.overlord.yahtzee.Yahtzee.TurnEndReason;
+
 public class Turn {
 	protected Yahtzee y;
 	protected Player player;
@@ -68,7 +70,6 @@ public class Turn {
 		if (rolls == 0) throw new ReqRollException("Must roll at least once!");
 		player.setScore(scoring, scores.get(scoring));
 		done = true;
-		y.turnComplete(this);
-		y.turnDone(this);
+		y.turnComplete(this, TurnEndReason.SCORING_CHOSEN);
 	}
 }
