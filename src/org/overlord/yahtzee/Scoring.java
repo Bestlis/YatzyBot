@@ -159,7 +159,7 @@ public enum Scoring {
 			}
 			return total;
 		}
-	}	;
+	};
 	
 	protected final String  name;
 	protected final String  abrv;

@@ -70,6 +70,6 @@ public class Turn {
 		if (rolls == 0) throw new ReqRollException("Must roll at least once!");
 		player.setScore(scoring, scores.get(scoring));
 		done = true;
-		y.turnComplete(this, TurnEndReason.SCORING_CHOSEN);
+		y.turnDone(this, TurnEndReason.SCORING_CHOSEN);
 	}
 }
